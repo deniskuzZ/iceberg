@@ -20,6 +20,8 @@
 import groovy.transform.Memoized
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 buildscript {
   repositories {
@@ -117,9 +119,30 @@ def projectVersion = getProjectVersion()
 final REVAPI_PROJECTS = ["iceberg-api", "iceberg-core", "iceberg-parquet", "iceberg-orc", "iceberg-common", "iceberg-data"]
 
 allprojects {
+
+  // enable running dependencies task recursively on all subprojects
+  // Usage: ./gradlew allDependencies
+  task allDependencies(type: DependencyReportTask) {}
+
   group = "org.apache.iceberg"
   version = projectVersion
   repositories {
+    if ( 'true' == System.getenv('CDP_ICEBERG_BUILD') ) {
+      // This is a CDP build, use the CDP build's preferred Nexus URLs. These are also
+      // text-replaced.
+      maven {
+        url gbnUrl
+        allowInsecureProtocol = true
+      }
+      maven {
+        url repositoryUrl
+        allowInsecureProtocol = true
+      }
+    } else {
+      // This is for a standalone build, where all internal dependencies are retrieved
+      // from Nexus-internal
+      maven { url nexusUrl }
+    }
     mavenCentral()
     mavenLocal()
   }
@@ -230,8 +253,14 @@ subprojects {
     jvmArgs += project.property('extraJvmArgs')
 
     testLogging {
-      events "failed"
-      exceptionFormat "full"
+      // The upstream CI now logs only FAILED tests. (#2013)
+      // For the downstream Jenkins-based builds, we can keep logging SKIPPED tests as well.
+      if ("true".equalsIgnoreCase(System.getenv('CLOUDERA_JENKINS_BUILD'))) {
+        events TestLogEvent.FAILED, TestLogEvent.SKIPPED
+      } else {
+        events TestLogEvent.FAILED
+      }
+      exceptionFormat TestExceptionFormat.FULL
     }
   }
 
@@ -424,6 +453,8 @@ project(':iceberg-aliyun') {
       exclude group: 'com.google.code.gson', module: 'gson'
     }
 
+    // CDPD only: Hadoop 3 does not have this dependency; add it explicitly
+    testImplementation libs.directory.api.util
     testImplementation libs.jackson.dataformat.xml
     testImplementation project(path: ':iceberg-api', configuration: 'testArtifacts')
     testImplementation libs.spring.web
@@ -609,7 +640,8 @@ project(':iceberg-delta-lake') {
       classpath = sourceSets.integration.runtimeClasspath
       jvmArgs += project.property('extraJvmArgs')
     }
-    check.dependsOn integrationTest
+    // Disable delta-lake integrationTest
+    // check.dependsOn integrationTest
   }
 }
 
@@ -710,6 +742,8 @@ project(':iceberg-hive-metastore') {
       exclude group: 'org.apache.avro', module: 'avro'
       exclude group: 'org.slf4j', module: 'slf4j-log4j12'
     }
+
+    testImplementation libs.hadoop2.hdfs
 
     testImplementation project(path: ':iceberg-api', configuration: 'testArtifacts')
   }
@@ -988,4 +1022,3 @@ apply from: 'jmh.gradle'
 apply from: 'baseline.gradle'
 apply from: 'deploy.gradle'
 apply from: 'tasks.gradle'
-

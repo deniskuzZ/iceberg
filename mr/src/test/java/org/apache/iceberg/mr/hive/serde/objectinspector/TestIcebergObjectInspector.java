@@ -174,8 +174,10 @@ public class TestIcebergObjectInspector {
           "IcebergTimestampObjectInspectorHive3",
           timestampField.getFieldObjectInspector().getClass().getSimpleName());
     } else {
+      // CDPD-18496: downstream only change so mr module compiles
       Assert.assertEquals(
-          IcebergTimestampObjectInspector.get(), timestampField.getFieldObjectInspector());
+          "IcebergTimestampObjectInspector",
+          timestampField.getFieldObjectInspector().getClass().getSimpleName());
     }
 
     // timestamp with tz
@@ -188,9 +190,10 @@ public class TestIcebergObjectInspector {
           "IcebergTimestampWithZoneObjectInspectorHive3",
           timestampTzField.getFieldObjectInspector().getClass().getSimpleName());
     } else {
+      // CDPD-18496: downstream only change so mr module compiles
       Assert.assertEquals(
-          IcebergTimestampWithZoneObjectInspector.get(),
-          timestampTzField.getFieldObjectInspector());
+          "IcebergTimestampWithZoneObjectInspector",
+          timestampTzField.getFieldObjectInspector().getClass().getSimpleName());
     }
 
     // UUID

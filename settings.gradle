@@ -71,7 +71,8 @@ if (null != System.getProperty("allVersions")) {
 }
 
 List<String> knownFlinkVersions = System.getProperty("knownFlinkVersions").split(",")
-String flinkVersionsString = System.getProperty("flinkVersions") != null ? System.getProperty("flinkVersions") : System.getProperty("defaultFlinkVersions")
+// CDPD only change: CDPD-17882: Turn off building and publishing the Flink module from downstream Iceberg
+String flinkVersionsString = System.getProperty("flinkVersions") != null ? System.getProperty("flinkVersions") : ""
 List<String> flinkVersions = flinkVersionsString != null && !flinkVersionsString.isEmpty() ? flinkVersionsString.split(",") : []
 
 if (!knownFlinkVersions.containsAll(flinkVersions)) {
@@ -183,10 +184,10 @@ if (sparkVersions.contains("3.5")) {
 
 // hive 3 depends on hive 2, so always add hive 2 if hive3 is enabled
 if (hiveVersions.contains("2") || hiveVersions.contains("3")) {
-  include 'mr'
+  // include 'mr'
   include 'hive-runtime'
 
-  project(':mr').name = 'iceberg-mr'
+  // project(':mr').name = 'iceberg-mr'
   project(':hive-runtime').name = 'iceberg-hive-runtime'
 }
 
@@ -199,4 +200,3 @@ if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
     project(':hive3-orc-bundle').name = 'iceberg-hive3-orc-bundle'
   }
 }
-
