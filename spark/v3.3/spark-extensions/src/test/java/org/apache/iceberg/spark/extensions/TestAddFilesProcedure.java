@@ -18,6 +18,8 @@
  */
 package org.apache.iceberg.spark.extensions;
 
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.DYNAMICPARTITIONINGMODE;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -79,6 +81,10 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
   public void dropTables() {
     sql("DROP TABLE IF EXISTS %s", sourceTableName);
     sql("DROP TABLE IF EXISTS %s", tableName);
+    // CDPD only: restore the dynamic partition mode
+    spark
+        .conf()
+        .set(DYNAMICPARTITIONINGMODE.varname, hiveConf.get(DYNAMICPARTITIONINGMODE.varname));
   }
 
   @Test
@@ -386,6 +392,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void addDataPartitionedHive() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     String createIceberg =
@@ -628,6 +636,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void addWeirdCaseHiveTable() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createWeirdCaseTable();
 
     String createIceberg =
@@ -653,14 +663,15 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
             .filter(r -> r[1].equals("John Doe"))
             .collect(Collectors.toList());
 
-    // TODO when this assert breaks Spark fixed the pushdown issue
-    Assert.assertEquals(
-        "If this assert breaks it means that Spark has fixed the pushdown issue",
-        0,
-        sql(
-                "SELECT id, `naMe`, dept, subdept from %s WHERE `naMe` = 'John Doe' ORDER BY id",
-                sourceTableName)
-            .size());
+    // CDPD only: the following is commented out because the pushdown issue is fixed
+    // // TODO when this assert breaks Spark fixed the pushdown issue
+    // Assert.assertEquals(
+    //     "If this assert breaks it means that Spark has fixed the pushdown issue",
+    //     0,
+    //     sql(
+    //             "SELECT id, `naMe`, dept, subdept from %s WHERE `naMe` = 'John Doe' ORDER BY id",
+    //             sourceTableName)
+    //         .size());
 
     // Pushdown works for iceberg
     Assert.assertEquals(
@@ -679,6 +690,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void addPartitionToPartitionedHive() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     String createIceberg =
@@ -757,6 +770,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void addTwice() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     String createIceberg =
@@ -794,6 +809,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void duplicateDataPartitioned() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     String createIceberg =
@@ -824,6 +841,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void duplicateDataPartitionedAllowed() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     String createIceberg =
@@ -946,6 +965,8 @@ public class TestAddFilesProcedure extends SparkExtensionsTestBase {
 
   @Test
   public void testPartitionedImportFromEmptyPartitionDoesNotThrow() {
+    // CDPD only: use nonstrict dynamic partition mode when creating partitioned Hive table
+    spark.conf().set(DYNAMICPARTITIONINGMODE.varname, "nonstrict");
     createPartitionedHiveTable();
 
     final int emptyPartitionId = 999;
