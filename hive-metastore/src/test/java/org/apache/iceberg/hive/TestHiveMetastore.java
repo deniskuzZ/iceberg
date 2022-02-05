@@ -94,12 +94,17 @@ public class TestHiveMetastore {
   // It's tricky to clear all static fields in an HMS instance in order to switch derby root dir.
   // Therefore, we reuse the same derby root between tests and remove it after JVM exits.
   private static final File HIVE_LOCAL_DIR;
+  private static final File HIVE_WAREHOUSE_DIR; // CDPD only
+  private static final File HIVE_EXTERNAL_WAREHOUSE_DIR; // CDPD only
   private static final String DERBY_PATH;
 
   static {
     try {
       HIVE_LOCAL_DIR =
           createTempDirectory("hive", asFileAttribute(fromString("rwxrwxrwx"))).toFile();
+      // CDPD only change to handle managed/external dirs
+      HIVE_WAREHOUSE_DIR = new File(HIVE_LOCAL_DIR, "managed");
+      HIVE_EXTERNAL_WAREHOUSE_DIR = new File(HIVE_LOCAL_DIR, "external");
       DERBY_PATH = new File(HIVE_LOCAL_DIR, "metastore_db").getPath();
       File derbyLogFile = new File(HIVE_LOCAL_DIR, "derby.log");
       System.setProperty("derby.stream.error.file", derbyLogFile.getAbsolutePath());
@@ -196,7 +201,7 @@ public class TestHiveMetastore {
   }
 
   public String getDatabasePath(String dbName) {
-    File dbDir = new File(HIVE_LOCAL_DIR, dbName + ".db");
+    File dbDir = new File(HIVE_EXTERNAL_WAREHOUSE_DIR, dbName + ".db");
     return dbDir.getPath();
   }
 
@@ -262,8 +267,13 @@ public class TestHiveMetastore {
 
   private void initConf(HiveConf conf, int port) {
     conf.set(HiveConf.ConfVars.METASTOREURIS.varname, "thrift://localhost:" + port);
+    // CDPD only change to handle managed/external dirs
     conf.set(
-        HiveConf.ConfVars.METASTOREWAREHOUSE.varname, "file:" + HIVE_LOCAL_DIR.getAbsolutePath());
+        HiveConf.ConfVars.METASTOREWAREHOUSE.varname,
+        "file:" + HIVE_WAREHOUSE_DIR.getAbsolutePath());
+    conf.set(
+        HiveConf.ConfVars.HIVE_METASTORE_WAREHOUSE_EXTERNAL.varname,
+        "file:" + HIVE_EXTERNAL_WAREHOUSE_DIR.getAbsolutePath());
     conf.set(HiveConf.ConfVars.METASTORE_TRY_DIRECT_SQL.varname, "false");
     conf.set(HiveConf.ConfVars.METASTORE_DISALLOW_INCOMPATIBLE_COL_TYPE_CHANGES.varname, "false");
     conf.set("iceberg.hive.client-pool-size", "2");
@@ -277,7 +287,7 @@ public class TestHiveMetastore {
     ScriptRunner scriptRunner = new ScriptRunner(connection, true, true);
 
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    InputStream inputStream = classLoader.getResourceAsStream("hive-schema-3.1.0.derby.sql");
+    InputStream inputStream = classLoader.getResourceAsStream("hive-schema-3.1.3000.derby.sql");
     try (Reader reader = new InputStreamReader(inputStream)) {
       scriptRunner.runScript(reader);
     }

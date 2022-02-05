@@ -27,6 +27,7 @@ public class CatalogProperties {
   public static final String CATALOG_IMPL = "catalog-impl";
   public static final String FILE_IO_IMPL = "io-impl";
   public static final String WAREHOUSE_LOCATION = "warehouse";
+  public static final String EXTERNAL_WAREHOUSE_LOCATION = "external-warehouse"; // CDPD only
   public static final String TABLE_DEFAULT_PREFIX = "table-default.";
   public static final String TABLE_OVERRIDE_PREFIX = "table-override.";
   public static final String METRICS_REPORTER_IMPL = "metrics-reporter-impl";

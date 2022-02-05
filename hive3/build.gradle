@@ -120,6 +120,8 @@ project(':iceberg-hive3') {
   }
 
   test {
+    // CDPD-45556: disable hive3 tests
+    onlyIf { false }
     // testJoinTables / testScanTable
     maxHeapSize '2500m'
   }

@@ -859,12 +859,17 @@ public class TestHiveCatalog extends HiveMetastoreTest {
   }
 
   @Test
-  public void testDropNamespace() throws TException {
+  public void testDropNamespace() throws Exception {
     Namespace namespace = Namespace.of("dbname_drop");
     TableIdentifier identifier = TableIdentifier.of(namespace, "table");
     Schema schema = getTestSchema();
 
-    catalog.createNamespace(namespace, meta);
+    String hiveLocalDir = temp.toFile().toURI().toString();
+    // remove the trailing slash of the URI
+    hiveLocalDir = hiveLocalDir.substring(0, hiveLocalDir.length() - 1);
+    ImmutableMap metaWithLocation =
+        ImmutableMap.<String, String>builder().putAll(meta).put("location", hiveLocalDir).build();
+    catalog.createNamespace(namespace, metaWithLocation);
     catalog.createTable(identifier, schema);
     Map<String, String> nameMata = catalog.loadNamespaceMetadata(namespace);
     assertThat(nameMata).containsEntry("owner", "apache");
@@ -922,7 +927,7 @@ public class TestHiveCatalog extends HiveMetastoreTest {
   }
 
   private String defaultUri(Namespace namespace) throws TException {
-    return metastoreClient.getConfigValue("hive.metastore.warehouse.dir", "")
+    return metastoreClient.getConfigValue("hive.metastore.warehouse.external.dir", "")
         + "/"
         + namespace.level(0)
         + ".db";
@@ -1171,13 +1176,14 @@ public class TestHiveCatalog extends HiveMetastoreTest {
     Configuration conf = new Configuration();
     // With a trailing slash
     conf.set("hive.metastore.warehouse.dir", "s3://bucket/");
+    conf.set("hive.metastore.warehouse.external.dir", "s3://bucket2/");
 
     HiveCatalog catalog = new HiveCatalog();
     catalog.setConf(conf);
 
     Database database = catalog.convertToDatabase(Namespace.of("database"), ImmutableMap.of());
 
-    assertThat(database.getLocationUri()).isEqualTo("s3://bucket/database.db");
+    assertThat(database.getLocationUri()).isEqualTo("s3://bucket2/database.db");
   }
 
   @Test

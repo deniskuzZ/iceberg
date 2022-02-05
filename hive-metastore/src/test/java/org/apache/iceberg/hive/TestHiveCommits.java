@@ -41,6 +41,7 @@ import org.apache.iceberg.exceptions.CommitStateUnknownException;
 import org.apache.iceberg.exceptions.ValidationException;
 import org.apache.iceberg.types.Types;
 import org.apache.thrift.TException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class TestHiveCommits extends HiveTableBaseTest {
@@ -297,6 +298,7 @@ public class TestHiveCommits extends HiveTableBaseTest {
         .hasSize(2);
   }
 
+  @Disabled("CDPD-43654")
   @Test
   public void testInvalidObjectException() {
     TableIdentifier badTi = TableIdentifier.of(DB_NAME, "`tbl`");

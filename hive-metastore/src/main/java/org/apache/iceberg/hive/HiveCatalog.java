@@ -101,6 +101,13 @@ public class HiveCatalog extends BaseMetastoreCatalog implements SupportsNamespa
           LocationUtil.stripTrailingSlash(properties.get(CatalogProperties.WAREHOUSE_LOCATION)));
     }
 
+    // CDPD only
+    if (properties.containsKey(CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION)) {
+      this.conf.set(
+          HiveConf.ConfVars.HIVE_METASTORE_WAREHOUSE_EXTERNAL.varname,
+          properties.get(CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION));
+    }
+
     this.listAllTables =
         Boolean.parseBoolean(properties.getOrDefault(LIST_ALL_TABLES, LIST_ALL_TABLES_DEFAULT));
 
@@ -522,6 +529,16 @@ public class HiveCatalog extends BaseMetastoreCatalog implements SupportsNamespa
     return String.format("%s/%s.db", warehouseLocation, databaseName);
   }
 
+  private String databaseLocationInExternalWarehouse(String databaseName) {
+    String warehouseLocation =
+        conf.get(HiveConf.ConfVars.HIVE_METASTORE_WAREHOUSE_EXTERNAL.varname);
+    Preconditions.checkNotNull(
+        warehouseLocation,
+        "Warehouse location is not set: hive.metastore.warehouse.external.dir=null");
+    warehouseLocation = LocationUtil.stripTrailingSlash(warehouseLocation);
+    return String.format("%s/%s.db", warehouseLocation, databaseName);
+  }
+
   private Map<String, String> convertToMetadata(Database database) {
 
     Map<String, String> meta = Maps.newHashMap();
@@ -550,7 +567,8 @@ public class HiveCatalog extends BaseMetastoreCatalog implements SupportsNamespa
     Map<String, String> parameter = Maps.newHashMap();
 
     database.setName(namespace.level(0));
-    database.setLocationUri(databaseLocation(namespace.level(0)));
+    database.setLocationUri(databaseLocationInExternalWarehouse(namespace.level(0)));
+    database.setManagedLocationUri(databaseLocation(namespace.level(0)));
 
     meta.forEach(
         (key, value) -> {
