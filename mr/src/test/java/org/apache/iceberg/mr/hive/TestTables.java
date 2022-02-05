@@ -24,6 +24,7 @@ import java.io.UncheckedIOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -555,8 +556,9 @@ abstract class TestTables {
     if (type.equals(Types.TimestampType.withoutZone())) {
       return String.format(template, Timestamp.valueOf((LocalDateTime) value).toString());
     } else if (type.equals(Types.TimestampType.withZone())) {
-      return String.format(
-          template, Timestamp.from(((OffsetDateTime) value).toInstant()).toString());
+      // CDPD only change
+      String utcTime = ((OffsetDateTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME).replaceAll("T", " ");
+      return String.format(template, utcTime);
     } else if (type.equals(Types.BooleanType.get())) {
       // in hive2 boolean type values must not be surrounded in apostrophes. Otherwise the value is
       // translated to true.

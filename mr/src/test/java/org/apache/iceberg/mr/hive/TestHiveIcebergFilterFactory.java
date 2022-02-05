@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import org.apache.hadoop.hive.ql.io.sarg.ExpressionTree;
@@ -277,7 +278,9 @@ public class TestHiveIcebergFilterFactory {
     Literal<Long> timestampLiteral =
         Literal.of("2012-10-02T05:16:17.123456").to(Types.TimestampType.withoutZone());
     long timestampMicros = timestampLiteral.value();
-    Timestamp ts = Timestamp.valueOf(DateTimeUtil.timestampFromMicros(timestampMicros));
+    // CDPD only change, since HIVE-21862 changes literal parsing to UTC based timestamps
+    // `org.apache.hadoop.hive.common.type.Timestamp.valueOf(lit.toString()).toSqlTimestamp()`
+    Timestamp ts = Timestamp.from(DateTimeUtil.timestampFromMicros(timestampMicros).toInstant(ZoneOffset.UTC));
 
     SearchArgument.Builder builder = SearchArgumentFactory.newBuilder();
     SearchArgument arg =

@@ -205,6 +205,8 @@ public class HiveIcebergFilterFactory {
 
   // We have to use the LocalDateTime to get the micros. See the comment above.
   private static long microsFromTimestamp(Timestamp timestamp) {
-    return DateTimeUtil.microsFromTimestamp(timestamp.toLocalDateTime());
+    // CDPD only change, since HIVE-21862 changes literal parsing to UTC based timestamps
+    // `org.apache.hadoop.hive.common.type.Timestamp.valueOf(lit.toString()).toSqlTimestamp()`
+    return DateTimeUtil.microsFromInstant(timestamp.toInstant());
   }
 }
