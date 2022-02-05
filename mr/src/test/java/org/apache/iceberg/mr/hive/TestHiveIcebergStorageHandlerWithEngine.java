@@ -1001,6 +1001,7 @@ public class TestHiveIcebergStorageHandlerWithEngine {
 
   @Test
   public void testInsertEmptyResultSet() throws IOException {
+    Assume.assumeTrue("Tez write is not implemented yet", executionEngine.equals("mr"));
     Table source =
         testTables.createTable(
             shell,
