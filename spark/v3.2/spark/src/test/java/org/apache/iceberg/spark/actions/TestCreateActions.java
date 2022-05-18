@@ -72,6 +72,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -317,6 +318,7 @@ public class TestCreateActions extends SparkCatalogTestBase {
     assertEquals("Output must match", results, expected);
   }
 
+  @Ignore("CDPD-41492")
   @Test
   public void removeColumnsAtEnd() throws Exception {
     Assume.assumeTrue("Cannot migrate to a hadoop based catalog", !type.equals("hadoop"));
@@ -364,6 +366,7 @@ public class TestCreateActions extends SparkCatalogTestBase {
     assertEquals("Output must match", expected2, results2);
   }
 
+  @Ignore("CDPD-41492")
   @Test
   public void removeColumnFromMiddle() throws Exception {
     Assume.assumeTrue("Cannot migrate to a hadoop based catalog", !type.equals("hadoop"));
@@ -585,6 +588,7 @@ public class TestCreateActions extends SparkCatalogTestBase {
     assertIsolatedSnapshot(source, dest);
   }
 
+  @Ignore("CDPD-41492")
   @Test
   public void schemaEvolutionTestWithSparkAPI() throws Exception {
     Assume.assumeTrue("Cannot migrate to a hadoop based catalog", !type.equals("hadoop"));
@@ -639,6 +643,7 @@ public class TestCreateActions extends SparkCatalogTestBase {
     assertEquals("Output must match", expectedAfterAddColumn, afterMigarteAfterAddResults);
   }
 
+  @Ignore("CDPD-41492")
   @Test
   public void schemaEvolutionTestWithSparkSQL() throws Exception {
     Assume.assumeTrue("Cannot migrate to a hadoop based catalog", !type.equals("hadoop"));
