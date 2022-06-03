@@ -21,8 +21,10 @@ directory-api-util = "1.0.0-M20"
 esotericsoftware-kryo = "4.0.2"
 errorprone-annotations = "2.3.3"
 findbugs-jsr305 = "3.0.2"
-flink115 = { strictly = "[1.15, 1.16[", prefer = "1.15.0"} # see rich version usage explanation above
-flink116 = { strictly = "[1.16, 1.17[", prefer = "1.16.2"}
+# flink115 = { strictly = "[1.15, 1.16[", prefer = "1.15.0"} # see rich version usage explanation above
+# flink116 = { strictly = "[1.16, 1.17[", prefer = "1.16.2"}
+flink115 = "1.15.1-csadh1.9.0.1-SNAPSHOT"
+flink116 = "1.16.1-csadh1.10.0.0-SNAPSHOT"
 flink117 = { strictly = "[1.17, 1.18[", prefer = "1.17.1"}
 google-libraries-bom = "26.18.0"
 guava = "32.1.1-jre"

@@ -107,6 +107,7 @@ public interface CatalogLoader extends Serializable, Cloneable {
     private final SerializableConfiguration hadoopConf;
     private final String uri;
     private final String warehouse;
+    private final String externalWarehouse;
     private final int clientPoolSize;
     private final Map<String, String> properties;
 
@@ -116,6 +117,7 @@ public interface CatalogLoader extends Serializable, Cloneable {
       this.hadoopConf = new SerializableConfiguration(conf);
       this.uri = properties.get(CatalogProperties.URI);
       this.warehouse = properties.get(CatalogProperties.WAREHOUSE_LOCATION);
+      this.externalWarehouse = properties.get(CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION);
       this.clientPoolSize =
           properties.containsKey(CatalogProperties.CLIENT_POOL_SIZE)
               ? Integer.parseInt(properties.get(CatalogProperties.CLIENT_POOL_SIZE))
@@ -141,6 +143,7 @@ public interface CatalogLoader extends Serializable, Cloneable {
           .add("catalogName", catalogName)
           .add("uri", uri)
           .add("warehouse", warehouse)
+          .add("externalWarehouse", externalWarehouse)
           .add("clientPoolSize", clientPoolSize)
           .toString();
     }

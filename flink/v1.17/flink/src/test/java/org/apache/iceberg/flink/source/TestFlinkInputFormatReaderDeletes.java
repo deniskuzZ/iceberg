@@ -50,6 +50,9 @@ public class TestFlinkInputFormatReaderDeletes extends TestFlinkReaderDeletesBas
     properties.put(
         CatalogProperties.WAREHOUSE_LOCATION,
         hiveConf.get(HiveConf.ConfVars.METASTOREWAREHOUSE.varname));
+    properties.put(
+        CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION,
+        hiveConf.get(HiveConf.ConfVars.HIVE_METASTORE_WAREHOUSE_EXTERNAL.varname));
     properties.put(CatalogProperties.URI, hiveConf.get(HiveConf.ConfVars.METASTOREURIS.varname));
     properties.put(
         CatalogProperties.CLIENT_POOL_SIZE,

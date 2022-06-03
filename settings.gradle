@@ -71,8 +71,7 @@ if (null != System.getProperty("allVersions")) {
 }
 
 List<String> knownFlinkVersions = System.getProperty("knownFlinkVersions").split(",")
-// CDPD only change: CDPD-17882: Turn off building and publishing the Flink module from downstream Iceberg
-String flinkVersionsString = System.getProperty("flinkVersions") != null ? System.getProperty("flinkVersions") : ""
+String flinkVersionsString = System.getProperty("flinkVersions") != null ? System.getProperty("flinkVersions") : System.getProperty("defaultFlinkVersions")
 List<String> flinkVersions = flinkVersionsString != null && !flinkVersionsString.isEmpty() ? flinkVersionsString.split(",") : []
 
 if (!knownFlinkVersions.containsAll(flinkVersions)) {

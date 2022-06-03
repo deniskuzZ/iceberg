@@ -45,9 +45,13 @@ public class TestFlinkHiveCatalog extends FlinkTestBase {
     props.put(CatalogProperties.URI, FlinkCatalogTestBase.getURI(hiveConf));
 
     File warehouseDir = tempFolder.newFolder();
+    File externalWarehouseDir = tempFolder.newFolder();
     props.put(CatalogProperties.WAREHOUSE_LOCATION, "file://" + warehouseDir.getAbsolutePath());
+    props.put(
+        CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION,
+        "file://" + externalWarehouseDir.getAbsolutePath());
 
-    checkSQLQuery(props, warehouseDir);
+    checkSQLQuery(props, externalWarehouseDir);
   }
 
   @Test
@@ -56,11 +60,15 @@ public class TestFlinkHiveCatalog extends FlinkTestBase {
     File hiveConfDir = tempFolder.newFolder();
     File hiveSiteXML = new File(hiveConfDir, "hive-site.xml");
     File warehouseDir = tempFolder.newFolder();
+    File externalWarehouseDir = tempFolder.newFolder();
     try (FileOutputStream fos = new FileOutputStream(hiveSiteXML)) {
       Configuration newConf = new Configuration(hiveConf);
       // Set another new directory which is different with the hive metastore's warehouse path.
       newConf.set(
           HiveConf.ConfVars.METASTOREWAREHOUSE.varname, "file://" + warehouseDir.getAbsolutePath());
+      newConf.set(
+          HiveConf.ConfVars.HIVE_METASTORE_WAREHOUSE_EXTERNAL.varname,
+          "file://" + externalWarehouseDir.getAbsolutePath());
       newConf.writeXml(fos);
     }
     Assert.assertTrue("hive-site.xml should be created now.", Files.exists(hiveSiteXML.toPath()));
@@ -73,7 +81,7 @@ public class TestFlinkHiveCatalog extends FlinkTestBase {
     // Set the 'hive-conf-dir' instead of 'warehouse'
     props.put(FlinkCatalogFactory.HIVE_CONF_DIR, hiveConfDir.getAbsolutePath());
 
-    checkSQLQuery(props, warehouseDir);
+    checkSQLQuery(props, externalWarehouseDir);
   }
 
   private void checkSQLQuery(Map<String, String> catalogProperties, File warehouseDir)

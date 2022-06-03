@@ -53,6 +53,8 @@ public class TestIcebergConnector extends FlinkTestBase {
 
   @ClassRule public static final TemporaryFolder WAREHOUSE = new TemporaryFolder();
 
+  @ClassRule public static final TemporaryFolder EXTERNAL_WAREHOUSE = new TemporaryFolder();
+
   private final String catalogName;
   private final Map<String, String> properties;
   private final boolean isStreaming;
@@ -285,6 +287,7 @@ public class TestIcebergConnector extends FlinkTestBase {
       catalogProps.put("catalog-type", "hadoop");
     }
     catalogProps.put(CatalogProperties.WAREHOUSE_LOCATION, createWarehouse());
+    catalogProps.put(CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION, createExternalWarehouse());
 
     // Create the table properties
     Map<String, String> tableProps = createTableProps();
@@ -314,6 +317,7 @@ public class TestIcebergConnector extends FlinkTestBase {
     Map<String, String> tableProps = Maps.newHashMap(properties);
     tableProps.put("catalog-name", catalogName);
     tableProps.put(CatalogProperties.WAREHOUSE_LOCATION, createWarehouse());
+    tableProps.put(CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION, createExternalWarehouse());
     if (isHiveCatalog()) {
       tableProps.put(CatalogProperties.URI, FlinkCatalogTestBase.getURI(hiveConf));
     }
@@ -343,6 +347,14 @@ public class TestIcebergConnector extends FlinkTestBase {
   private static String createWarehouse() {
     try {
       return String.format("file://%s", WAREHOUSE.newFolder().getAbsolutePath());
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private static String createExternalWarehouse() {
+    try {
+      return String.format("file://%s", EXTERNAL_WAREHOUSE.newFolder().getAbsolutePath());
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

@@ -44,17 +44,20 @@ public abstract class FlinkCatalogTestBase extends FlinkTestBase {
 
   protected static final String DATABASE = "db";
   private static TemporaryFolder hiveWarehouse = new TemporaryFolder();
+  private static TemporaryFolder externalHiveWarehouse = new TemporaryFolder();
   private static TemporaryFolder hadoopWarehouse = new TemporaryFolder();
 
   @BeforeClass
   public static void createWarehouse() throws IOException {
     hiveWarehouse.create();
+    externalHiveWarehouse.create();
     hadoopWarehouse.create();
   }
 
   @AfterClass
   public static void dropWarehouse() {
     hiveWarehouse.delete();
+    externalHiveWarehouse.delete();
     hadoopWarehouse.delete();
   }
 
@@ -107,6 +110,9 @@ public abstract class FlinkCatalogTestBase extends FlinkTestBase {
       config.put(CatalogProperties.URI, getURI(hiveConf));
     }
     config.put(CatalogProperties.WAREHOUSE_LOCATION, String.format("file://%s", warehouseRoot()));
+    config.put(
+        CatalogProperties.EXTERNAL_WAREHOUSE_LOCATION,
+        String.format("file://%s", externalWarehouseRoot()));
 
     this.flinkDatabase = catalogName + "." + DATABASE;
     this.icebergNamespace =
@@ -118,6 +124,14 @@ public abstract class FlinkCatalogTestBase extends FlinkTestBase {
       return hadoopWarehouse.getRoot().getAbsolutePath();
     } else {
       return hiveWarehouse.getRoot().getAbsolutePath();
+    }
+  }
+
+  protected String externalWarehouseRoot() {
+    if (isHadoopCatalog) {
+      return hadoopWarehouse.getRoot().getAbsolutePath();
+    } else {
+      return externalHiveWarehouse.getRoot().getAbsolutePath();
     }
   }
 

@@ -135,6 +135,10 @@ allprojects {
         allowInsecureProtocol = true
       }
       maven {
+        url flinkGbnUrl
+        allowInsecureProtocol = true
+      }
+      maven {
         url repositoryUrl
         allowInsecureProtocol = true
       }
