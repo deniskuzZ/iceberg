@@ -52,6 +52,7 @@ import org.apache.spark.sql.connector.expressions.NamedReference;
 import org.apache.spark.sql.connector.read.Statistics;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
 import org.apache.spark.sql.sources.Filter;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
 
   private static final Logger LOG = LoggerFactory.getLogger(SparkBatchQueryScan.class);
 
+  private final boolean estStatsUsingFileSize;
   private final Long snapshotId;
   private final Long startSnapshotId;
   private final Long endSnapshotId;
@@ -67,16 +69,21 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
   private final String tag;
   private final List<Expression> runtimeFilterExpressions;
 
+  private Double adjustmentFactor =
+      null; // lazy cache of adjustment factor for estimating statistics
+
   SparkBatchQueryScan(
       SparkSession spark,
       Table table,
       Scan<?, ? extends ScanTask, ? extends ScanTaskGroup<?>> scan,
+      boolean estStatsUsingFileSize,
       SparkReadConf readConf,
       Schema expectedSchema,
       List<Expression> filters) {
 
     super(spark, table, scan, readConf, expectedSchema, filters);
 
+    this.estStatsUsingFileSize = estStatsUsingFileSize;
     this.snapshotId = readConf.snapshotId();
     this.startSnapshotId = readConf.startSnapshotId();
     this.endSnapshotId = readConf.endSnapshotId();
@@ -178,6 +185,24 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
     return runtimeFilterExpr;
   }
 
+  private Double adjustmentFactor() {
+    if (estStatsUsingFileSize) {
+      if (adjustmentFactor == null) {
+        double compressionFactor =
+            SparkSession.active().sessionState().conf().fileCompressionFactor();
+        Schema snapshotSchema = SnapshotUtil.schemaFor(table(), snapshotId, asOfTimestamp);
+        StructType tableSchema = SparkSchemaUtil.convert(snapshotSchema);
+        adjustmentFactor =
+            Double.valueOf(
+                compressionFactor * readSchema().defaultSize() / tableSchema.defaultSize());
+      }
+
+      return adjustmentFactor;
+    } else {
+      return null;
+    }
+  }
+
   @Override
   public Statistics estimateStatistics() {
     if (scan() == null) {
@@ -185,12 +210,12 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
 
     } else if (snapshotId != null) {
       Snapshot snapshot = table().snapshot(snapshotId);
-      return estimateStatistics(snapshot);
+      return estimateStatistics(snapshot, estStatsUsingFileSize, adjustmentFactor());
 
     } else if (asOfTimestamp != null) {
       long snapshotIdAsOfTime = SnapshotUtil.snapshotIdAsOfTime(table(), asOfTimestamp);
       Snapshot snapshot = table().snapshot(snapshotIdAsOfTime);
-      return estimateStatistics(snapshot);
+      return estimateStatistics(snapshot, estStatsUsingFileSize, adjustmentFactor());
 
     } else if (branch() != null) {
       Snapshot snapshot = table().snapshot(branch());
@@ -202,7 +227,7 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
 
     } else {
       Snapshot snapshot = table().currentSnapshot();
-      return estimateStatistics(snapshot);
+      return estimateStatistics(snapshot, estStatsUsingFileSize, adjustmentFactor());
     }
   }
 

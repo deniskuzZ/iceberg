@@ -65,11 +65,16 @@ public class SparkScanBuilder
   private static final Logger LOG = LoggerFactory.getLogger(SparkScanBuilder.class);
   private static final Filter[] NO_FILTERS = new Filter[0];
 
+  public static final String EST_STATS_USING_FILE_SIZE =
+      "spark.cloudera.iceberg.estStatsUsingFileSize";
+  public static final String EST_STATS_USING_FILE_SIZE_DEFAULT = "false";
+
   private final SparkSession spark;
   private final Table table;
   private final CaseInsensitiveStringMap options;
   private final SparkReadConf readConf;
   private final List<String> metaColumns = Lists.newArrayList();
+  private final boolean estStatsUsingFileSize;
 
   private Schema schema = null;
   private boolean caseSensitive;
@@ -84,6 +89,9 @@ public class SparkScanBuilder
     this.options = options;
     this.readConf = new SparkReadConf(spark, table, options);
     this.caseSensitive = readConf.caseSensitive();
+    this.estStatsUsingFileSize =
+        Boolean.parseBoolean(
+            spark.conf().get(EST_STATS_USING_FILE_SIZE, EST_STATS_USING_FILE_SIZE_DEFAULT));
   }
 
   SparkScanBuilder(SparkSession spark, Table table, CaseInsensitiveStringMap options) {
@@ -246,7 +254,8 @@ public class SparkScanBuilder
 
     scan = configureSplitPlanning(scan);
 
-    return new SparkBatchQueryScan(spark, table, scan, readConf, expectedSchema, filterExpressions);
+    return new SparkBatchQueryScan(
+        spark, table, scan, estStatsUsingFileSize, readConf, expectedSchema, filterExpressions);
   }
 
   @SuppressWarnings("CyclomaticComplexity")
@@ -350,7 +359,13 @@ public class SparkScanBuilder
 
     if (snapshot == null) {
       return new SparkBatchQueryScan(
-          spark, table, null, readConf, schemaWithMetadataColumns(), filterExpressions);
+          spark,
+          table,
+          null,
+          estStatsUsingFileSize,
+          readConf,
+          schemaWithMetadataColumns(),
+          filterExpressions);
     }
 
     // remember the current snapshot ID for commit validation
@@ -373,7 +388,13 @@ public class SparkScanBuilder
     scan = configureSplitPlanning(scan);
 
     return new SparkBatchQueryScan(
-        spark, table, scan, adjustedReadConf, expectedSchema, filterExpressions);
+        spark,
+        table,
+        scan,
+        estStatsUsingFileSize,
+        adjustedReadConf,
+        expectedSchema,
+        filterExpressions);
   }
 
   public Scan buildCopyOnWriteScan() {

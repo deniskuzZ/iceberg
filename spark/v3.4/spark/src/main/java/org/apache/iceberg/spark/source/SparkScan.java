@@ -31,6 +31,7 @@ import org.apache.iceberg.SnapshotSummary;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.metrics.ScanReport;
+import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.spark.Spark3Util;
 import org.apache.iceberg.spark.SparkReadConf;
@@ -153,6 +154,15 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
   }
 
   protected Statistics estimateStatistics(Snapshot snapshot) {
+    return estimateStatistics(snapshot, false, null);
+  }
+
+  protected Statistics estimateStatistics(
+      Snapshot snapshot, boolean useFileSize, Double adjustmentFactor) {
+    Preconditions.checkArgument(
+        !useFileSize || adjustmentFactor != null,
+        "adjustment factor must be provided to estimate statistics using file size");
+
     // its a fresh table, no data
     if (snapshot == null) {
       return new Stats(0L, 0L);
@@ -170,7 +180,23 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
     }
 
     long rowsCount = taskGroups().stream().mapToLong(ScanTaskGroup::estimatedRowsCount).sum();
-    long sizeInBytes = SparkSchemaUtil.estimateSize(readSchema(), rowsCount);
+    long sizeInBytes = 0L;
+
+    if (useFileSize) {
+      try {
+        sizeInBytes =
+            taskGroups().stream()
+                .flatMap(t -> t.tasks().stream())
+                .map(ScanTask::asFileScanTask)
+                .mapToLong(f -> (long) (adjustmentFactor.doubleValue() * f.length()))
+                .sum();
+      } catch (RuntimeException e) {
+        sizeInBytes = SparkSchemaUtil.estimateSize(readSchema(), rowsCount);
+      }
+    } else {
+      sizeInBytes = SparkSchemaUtil.estimateSize(readSchema(), rowsCount);
+    }
+
     return new Stats(sizeInBytes, rowsCount);
   }
 
