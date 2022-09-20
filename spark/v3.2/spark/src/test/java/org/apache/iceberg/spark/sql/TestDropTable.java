@@ -28,6 +28,7 @@ import org.apache.iceberg.AssertHelpers;
 import org.apache.iceberg.MetadataTableType;
 import org.apache.iceberg.exceptions.ValidationException;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableList;
+import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.relocated.com.google.common.collect.Streams;
 import org.apache.iceberg.spark.SparkCatalogTestBase;
 import org.junit.After;
@@ -53,8 +54,29 @@ public class TestDropTable extends SparkCatalogTestBase {
   }
 
   @Test
-  public void testDropTable() throws IOException {
-    dropTableInternal();
+  public void testDropTableWithPurge() {
+    withSQLConf(
+        ImmutableMap.of("spark.cloudera.iceberg.purgeOnDropTable", "true"),
+        () -> {
+          try {
+            dropTableInternal(false);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testDropTableWithoutPurge() {
+    withSQLConf(
+        ImmutableMap.of("spark.cloudera.iceberg.purgeOnDropTable", "false"),
+        () -> {
+          try {
+            dropTableInternal();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test
@@ -63,7 +85,21 @@ public class TestDropTable extends SparkCatalogTestBase {
     dropTableInternal();
   }
 
-  private void dropTableInternal() throws IOException {
+  @Test
+  public void testDropTableGCDisabledWithoutPurge() {
+    sql("ALTER TABLE %s SET TBLPROPERTIES (gc.enabled = false)", tableName);
+    withSQLConf(
+        ImmutableMap.of("spark.cloudera.iceberg.purgeOnDropTable", "false"),
+        () -> {
+          try {
+            dropTableInternal();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  private void dropTableInternal(boolean filesShouldExist) throws IOException {
     assertEquals(
         "Should have expected rows",
         ImmutableList.of(row(1, "test")),
@@ -81,8 +117,13 @@ public class TestDropTable extends SparkCatalogTestBase {
       // HadoopCatalog drop table without purge will delete the base table location.
       Assert.assertTrue("All files should be deleted", checkFilesExist(manifestAndFiles, false));
     } else {
-      Assert.assertTrue("All files should not be deleted", checkFilesExist(manifestAndFiles, true));
+      Assert.assertTrue(
+          "All files should not be deleted", checkFilesExist(manifestAndFiles, filesShouldExist));
     }
+  }
+
+  private void dropTableInternal() throws IOException {
+    dropTableInternal(true);
   }
 
   @Test
