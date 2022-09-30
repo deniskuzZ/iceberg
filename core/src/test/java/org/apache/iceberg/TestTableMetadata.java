@@ -1461,6 +1461,9 @@ public class TestTableMetadata {
     assertThat(meta.formatVersion()).isEqualTo(2);
     assertThat(meta.properties())
         .containsEntry("key", "val")
+        .containsEntry(TableProperties.DELETE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
+        .containsEntry(TableProperties.UPDATE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
+        .containsEntry(TableProperties.MERGE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
         .doesNotContainKey(TableProperties.FORMAT_VERSION);
   }
 
@@ -1487,6 +1490,9 @@ public class TestTableMetadata {
     assertThat(meta.properties())
         .containsEntry("key", "val")
         .containsEntry("key2", "val2")
+        .containsEntry(TableProperties.DELETE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
+        .containsEntry(TableProperties.UPDATE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
+        .containsEntry(TableProperties.MERGE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName())
         .doesNotContainKey(TableProperties.FORMAT_VERSION);
   }
 
@@ -1511,7 +1517,15 @@ public class TestTableMetadata {
         meta.formatVersion());
     Assert.assertEquals(
         "should not contain format-version but should contain new properties",
-        ImmutableMap.of("key2", "val2"),
+        ImmutableMap.of(
+            "key2",
+            "val2",
+            TableProperties.DELETE_MODE,
+            RowLevelOperationMode.MERGE_ON_READ.modeName(),
+            TableProperties.UPDATE_MODE,
+            RowLevelOperationMode.MERGE_ON_READ.modeName(),
+            TableProperties.MERGE_MODE,
+            RowLevelOperationMode.MERGE_ON_READ.modeName()),
         meta.properties());
   }
 

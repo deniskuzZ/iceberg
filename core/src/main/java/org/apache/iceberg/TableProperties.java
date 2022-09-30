@@ -40,6 +40,9 @@ public class TableProperties {
    */
   public static final String FORMAT_VERSION = "format-version";
 
+  public static final int FORMAT_VERSION_1 = 1;
+  public static final int FORMAT_VERSION_2 = 2;
+
   /** Reserved table property for table UUID. */
   public static final String UUID = "uuid";
 

@@ -1392,6 +1392,8 @@ public class TableMetadata implements Serializable {
         return base;
       }
 
+      this.addMergeOnReadPropertiesIfNeeded();
+
       if (lastUpdatedMillis == null) {
         this.lastUpdatedMillis = System.currentTimeMillis();
       }
@@ -1444,6 +1446,29 @@ public class TableMetadata implements Serializable {
           ImmutableMap.copyOf(refs),
           statisticsFiles.values().stream().flatMap(List::stream).collect(Collectors.toList()),
           discardChanges ? ImmutableList.of() : ImmutableList.copyOf(changes));
+    }
+
+    private void addMergeOnReadPropertiesIfNeeded() {
+      boolean isV2TableCreation =
+          this.base == null && this.formatVersion == TableProperties.FORMAT_VERSION_2;
+      boolean isTableUpgradeToV2 =
+          this.base != null
+              && this.base.formatVersion == TableProperties.FORMAT_VERSION_1
+              && this.formatVersion == TableProperties.FORMAT_VERSION_2;
+
+      boolean rowLevelOpsModeProvided =
+          this.properties.containsKey(TableProperties.UPDATE_MODE)
+              || this.properties.containsKey(TableProperties.DELETE_MODE)
+              || this.properties.containsKey(TableProperties.MERGE_MODE);
+
+      if ((isV2TableCreation || isTableUpgradeToV2) && !rowLevelOpsModeProvided) {
+        this.properties.put(
+            TableProperties.UPDATE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName());
+        this.properties.put(
+            TableProperties.DELETE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName());
+        this.properties.put(
+            TableProperties.MERGE_MODE, RowLevelOperationMode.MERGE_ON_READ.modeName());
+      }
     }
 
     private int addSchemaInternal(Schema schema, int newLastColumnId) {
