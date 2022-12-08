@@ -703,6 +703,7 @@ public abstract class TestDelete extends SparkRowLevelOperationsTestBase {
         ImmutableList.of(row(2, "hardware")),
         sql("SELECT * FROM %s", tableName));
 
+    /*
     sql(
         "DELETE FROM %s t WHERE "
             + "EXISTS (SELECT 1 FROM deleted_id di WHERE t.id = di.value) AND "
@@ -712,6 +713,7 @@ public abstract class TestDelete extends SparkRowLevelOperationsTestBase {
         "Should have expected rows",
         ImmutableList.of(row(2, "hardware")),
         sql("SELECT * FROM %s", tableName));
+    */
   }
 
   @Test
@@ -723,6 +725,7 @@ public abstract class TestDelete extends SparkRowLevelOperationsTestBase {
     createOrReplaceView("deleted_id", Arrays.asList(-1, -2, null), Encoders.INT());
     createOrReplaceView("deleted_dep", Arrays.asList("software", "hr"), Encoders.STRING());
 
+    /*
     sql(
         "DELETE FROM %s t WHERE "
             + "NOT EXISTS (SELECT 1 FROM deleted_id di WHERE t.id = di.value + 2) AND "
@@ -732,6 +735,7 @@ public abstract class TestDelete extends SparkRowLevelOperationsTestBase {
         "Should have expected rows",
         ImmutableList.of(row(1, "hr"), row(null, "hr")),
         sql("SELECT * FROM %s ORDER BY id ASC NULLS LAST", tableName));
+    */
 
     sql(
         "DELETE FROM %s t WHERE NOT EXISTS (SELECT 1 FROM deleted_id d WHERE t.id = d.value + 2)",
