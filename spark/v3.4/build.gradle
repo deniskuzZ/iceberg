@@ -62,6 +62,7 @@ project(":iceberg-spark:iceberg-spark-${sparkMajorVersion}_${scalaVersion}") {
     implementation("org.scala-lang.modules:scala-collection-compat_${scalaVersion}")
 
     compileOnly "com.google.errorprone:error_prone_annotations"
+    compileOnly "com.github.ben-manes.caffeine:caffeine"
     compileOnly "org.apache.avro:avro"
     compileOnly("org.apache.spark:spark-hive_${scalaVersion}:${sparkVersion}") {
       exclude group: 'org.apache.avro', module: 'avro'

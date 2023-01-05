@@ -62,6 +62,7 @@ project(':iceberg-spark:iceberg-spark-3.1_2.12') {
     implementation project(':iceberg-arrow')
 
     compileOnly "com.google.errorprone:error_prone_annotations"
+    compileOnly "com.github.ben-manes.caffeine:caffeine"
     compileOnly "org.apache.avro:avro"
     compileOnly("org.apache.spark:spark-hive_2.12:${sparkVersion}") {
       exclude group: 'org.apache.avro', module: 'avro'
