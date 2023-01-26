@@ -18,6 +18,8 @@
  */
 package org.apache.iceberg.spark.source;
 
+import static org.apache.iceberg.spark.source.SparkScanBuilder.EST_STATS_USING_FILE_SIZE;
+import static org.apache.iceberg.spark.source.SparkScanBuilder.EST_STATS_USING_FILE_SIZE_DEFAULT;
 import static org.apache.spark.sql.functions.date_add;
 import static org.apache.spark.sql.functions.expr;
 
@@ -42,18 +44,27 @@ public class TestSupportsReportStatistics extends SparkTestBaseWithCatalog {
   }
 
   @Test
+  public void testEstimateStatisticsConfDefault() {
+    boolean confDefault =
+        Boolean.parseBoolean(
+            spark.conf().get(EST_STATS_USING_FILE_SIZE, EST_STATS_USING_FILE_SIZE_DEFAULT));
+    Assert.assertTrue(
+        "spark.cloudera.iceberg.estStatsUsingFileSize should default to true", confDefault);
+  }
+
+  @Test
   public void testEstimateStatisticsUsingFileSize() {
     testEstimateStatistics(true);
   }
 
   @Test
-  public void testEstimateStatisticsDefault() {
+  public void testEstimateStatisticsNotUsingFileSize() {
     testEstimateStatistics(false);
   }
 
   private void testEstimateStatistics(boolean useFileSize) {
     withSQLConf(
-        ImmutableMap.of(SparkScanBuilder.EST_STATS_USING_FILE_SIZE, useFileSize ? "true" : "false"),
+        ImmutableMap.of(EST_STATS_USING_FILE_SIZE, useFileSize ? "true" : "false"),
         () -> {
           try {
             sql(
