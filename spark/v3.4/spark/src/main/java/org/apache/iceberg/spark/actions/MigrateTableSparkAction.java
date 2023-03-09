@@ -141,6 +141,11 @@ public class MigrateTableSparkAction extends BaseTableCreationSparkAction<Migrat
 
       LOG.info("Committing staged changes to {}", destTableIdent());
       stagedTable.commitStagedChanges();
+      spark()
+          .sql(
+              String.format(
+                  "ALTER TABLE %s SET TBLPROPERTIES ('external.table.purge'='false')",
+                  backupIdent));
       threw = false;
     } finally {
       if (threw) {
@@ -208,6 +213,12 @@ public class MigrateTableSparkAction extends BaseTableCreationSparkAction<Migrat
 
   private void renameAndBackupSourceTable() {
     try {
+      LOG.info("Unsetting TRANSLATED_TO_EXTERNAL for {}", sourceTableIdent());
+      spark()
+          .sql(
+              String.format(
+                  "ALTER TABLE %s UNSET TBLPROPERTIES IF EXISTS ('TRANSLATED_TO_EXTERNAL')",
+                  sourceTableIdent()));
       LOG.info("Renaming {} as {} for backup", sourceTableIdent(), backupIdent);
       destCatalog().renameTable(sourceTableIdent(), backupIdent);
 

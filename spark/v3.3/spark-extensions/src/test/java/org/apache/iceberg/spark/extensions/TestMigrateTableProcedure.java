@@ -75,6 +75,38 @@ public class TestMigrateTableProcedure extends SparkExtensionsTestBase {
   }
 
   @Test
+  public void testMigrateTableWithDefaultLocation() throws IOException {
+    Assume.assumeTrue(catalogName.equals("spark_catalog"));
+    sql("CREATE TABLE %s (id bigint NOT NULL, data string) STORED AS parquet", tableName);
+    sql("INSERT INTO TABLE %s VALUES (1, 'a')", tableName);
+    Object result = scalarSql("CALL %s.system.migrate('%s')", catalogName, tableName);
+
+    Assert.assertEquals("Should have added one file", 1L, result);
+
+    sql("INSERT INTO TABLE %s VALUES (2, 'b')", tableName);
+
+    assertEquals(
+        "Should have expected rows",
+        ImmutableList.of(row(1L, "a"), row(2L, "b")),
+        sql("SELECT * FROM %s ORDER BY id", tableName));
+
+    // Check that the location of "table_backup_" is a directory named "table" and not
+    // "table_backup_"
+    Assert.assertTrue(
+        spark
+            .sql("DESCRIBE FORMATTED " + tableName + "_backup_")
+            .toDF()
+            .filter("col_name = 'Location'")
+            .first()
+            .getString(1)
+            .endsWith("table"));
+
+    sql("DROP TABLE %s", tableName + "_BACKUP_");
+    // Dropping a table after dropping the backup table should succeed.
+    sql("DROP TABLE %s", tableName);
+  }
+
+  @Test
   public void testMigrateWithOptions() throws IOException {
     Assume.assumeTrue(catalogName.equals("spark_catalog"));
     String location = temp.newFolder().toString();
