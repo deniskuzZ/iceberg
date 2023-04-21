@@ -17,11 +17,8 @@
 # under the License.
 #
 
-name: "Java CI"
+name: "Pre-commit"
 on:
-  push:
-    branches:
-      - 'cdw-master'
   pull_request_target:
     types:
       - opened
@@ -61,57 +58,28 @@ env:
   GIT_PROJECT: ${{ github.repository }}
 
 jobs:
-  core-tests:
-    runs-on: ci_builds
-    strategy:
-      matrix:
-        jvm: [8, 11, 17]
-    env:
-      SPARK_LOCAL_IP: localhost
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-    - uses: actions/setup-java@v3
-      with:
-        distribution: adopt
-        java-version: ${{ matrix.jvm }}
-    - uses: actions/cache@v3
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: ${{ runner.os }}-gradle-
-    - run: echo -e "$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)\t$(hostname -f) $(hostname -s)" | sudo tee -a /etc/hosts
-    - run: ./gradlew check -DsparkVersions= -DhiveVersions= -DflinkVersions= -Pquick=true -x javadoc
-    - uses: actions/upload-artifact@v3
-      if: failure()
-      with:
-        name: test logs
-        path: |
-          **/build/testlogs
-
-  build-checks:
+  pre-commit:
     runs-on: ci_builds
     steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-    - uses: actions/setup-java@v3
-      with:
-        distribution: adopt
-        java-version: 8
-    - run: ./gradlew -DallVersions build -x test -x javadoc -x integrationTest
-
-  build-javadoc:
-    runs-on: ci_builds
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-    - uses: actions/setup-java@v3
-      with:
-        distribution: adopt
-        java-version: 8
-    - run: ./gradlew -Pquick=true javadoc
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-java@v3
+        with:
+          distribution: adopt
+          java-version: 8
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+      - run: echo -e "$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)\t$(hostname -f) $(hostname -s)" | sudo tee -a /etc/hosts
+      - run: ./gradlew --no-daemon --continue clean build
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test logs
+          path: |
+            **/build/testlogs
