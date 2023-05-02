@@ -18,8 +18,14 @@
  */
 package org.apache.iceberg.data;
 
+import static org.apache.iceberg.TableProperties.AVRO_COMPRESSION;
+import static org.apache.iceberg.TableProperties.AVRO_COMPRESSION_DEFAULT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
+import static org.apache.iceberg.TableProperties.ORC_COMPRESSION;
+import static org.apache.iceberg.TableProperties.ORC_COMPRESSION_DEFAULT;
+import static org.apache.iceberg.TableProperties.PARQUET_COMPRESSION;
+import static org.apache.iceberg.TableProperties.PARQUET_COMPRESSION_DEFAULT;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -41,6 +47,7 @@ import org.apache.iceberg.encryption.EncryptionKeyMetadata;
 import org.apache.iceberg.io.FileAppender;
 import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.OutputFile;
+import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.types.Types;
 import org.apache.iceberg.util.CharSequenceSet;
 import org.apache.iceberg.util.Pair;
@@ -104,6 +111,7 @@ public class FileHelpers {
       throws IOException {
     FileFormat format = defaultFormat(table.properties());
     GenericAppenderFactory factory = new GenericAppenderFactory(table.schema());
+    factory.setAll(defaultCodecs(table.properties()));
 
     FileAppender<Record> writer = factory.newAppender(out, format);
     try (Closeable toClose = writer) {
@@ -123,6 +131,7 @@ public class FileHelpers {
       Table table, OutputFile out, StructLike partition, List<Record> rows) throws IOException {
     FileFormat format = defaultFormat(table.properties());
     GenericAppenderFactory factory = new GenericAppenderFactory(table.schema(), table.spec());
+    factory.setAll(defaultCodecs(table.properties()));
 
     FileAppender<Record> writer = factory.newAppender(out, format);
     try (Closeable toClose = writer) {
@@ -168,5 +177,13 @@ public class FileHelpers {
   private static FileFormat defaultFormat(Map<String, String> properties) {
     String formatString = properties.getOrDefault(DEFAULT_FILE_FORMAT, DEFAULT_FILE_FORMAT_DEFAULT);
     return FileFormat.fromString(formatString);
+  }
+
+  private static Map<String, String> defaultCodecs(Map<String, String> properties) {
+    String avroCodec = properties.getOrDefault(AVRO_COMPRESSION, AVRO_COMPRESSION_DEFAULT);
+    String orcCodec = properties.getOrDefault(ORC_COMPRESSION, ORC_COMPRESSION_DEFAULT);
+    String parquetCodec = properties.getOrDefault(PARQUET_COMPRESSION, PARQUET_COMPRESSION_DEFAULT);
+    return ImmutableMap.of(
+        AVRO_COMPRESSION, avroCodec, ORC_COMPRESSION, orcCodec, PARQUET_COMPRESSION, parquetCodec);
   }
 }

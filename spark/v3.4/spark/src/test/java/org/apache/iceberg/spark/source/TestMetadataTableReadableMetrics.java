@@ -97,7 +97,7 @@ public class TestMetadataTableReadableMetrics extends SparkTestBaseWithCatalog {
             TableIdentifier.of(Namespace.of(database()), tableName()),
             PRIMITIVE_SCHEMA,
             PartitionSpec.unpartitioned(),
-            ImmutableMap.of());
+            ImmutableMap.of("write.parquet.compression-codec", "gzip"));
     List<Record> records =
         Lists.newArrayList(
             createPrimitiveRecord(
@@ -136,7 +136,7 @@ public class TestMetadataTableReadableMetrics extends SparkTestBaseWithCatalog {
             TableIdentifier.of(Namespace.of(database()), tableName()),
             NESTED_SCHEMA,
             PartitionSpec.unpartitioned(),
-            ImmutableMap.of());
+            ImmutableMap.of("write.parquet.compression-codec", "gzip"));
 
     List<Record> records =
         Lists.newArrayList(

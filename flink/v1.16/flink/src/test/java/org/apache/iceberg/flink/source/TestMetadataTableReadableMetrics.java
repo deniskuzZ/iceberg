@@ -107,7 +107,7 @@ public class TestMetadataTableReadableMetrics extends FlinkCatalogTestBase {
             TableIdentifier.of(DATABASE, TABLE_NAME),
             PRIMITIVE_SCHEMA,
             PartitionSpec.unpartitioned(),
-            ImmutableMap.of());
+            ImmutableMap.of("write.parquet.compression-codec", "gzip"));
     List<Record> records =
         Lists.newArrayList(
             createPrimitiveRecord(
@@ -146,7 +146,7 @@ public class TestMetadataTableReadableMetrics extends FlinkCatalogTestBase {
             TableIdentifier.of(DATABASE, TABLE_NAME),
             NESTED_SCHEMA,
             PartitionSpec.unpartitioned(),
-            ImmutableMap.of());
+            ImmutableMap.of("write.parquet.compression-codec", "gzip"));
 
     List<Record> records =
         Lists.newArrayList(
