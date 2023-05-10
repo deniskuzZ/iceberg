@@ -75,7 +75,7 @@ project(':iceberg-mr') {
 
   test {
     // testJoinTables / testScanTable
-    maxHeapSize '2500m'
+    maxHeapSize '4096m'
   }
 
   // CDPD-18672: downstream-only change: disable the whole mr module so we don't need to keep building it with Hive2

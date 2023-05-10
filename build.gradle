@@ -253,7 +253,7 @@ subprojects {
       }
     })
 
-    maxHeapSize = "1500m"
+    maxHeapSize = "2560m"
 
     jvmArgs += project.property('extraJvmArgs')
 
@@ -436,7 +436,7 @@ project(':iceberg-data') {
 
   test {
     // Only for TestSplitScan as of Gradle 5.0+
-    maxHeapSize '1500m'
+    maxHeapSize '2560m'
   }
 }
 
