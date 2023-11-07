@@ -221,11 +221,11 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
 
     } else if (branch() != null) {
       Snapshot snapshot = table().snapshot(branch());
-      return estimateStatistics(snapshot);
+      return estimateStatistics(snapshot, estStatsUsingFileSize, adjustmentFactor());
 
     } else if (tag != null) {
       Snapshot snapshot = table().snapshot(tag);
-      return estimateStatistics(snapshot);
+      return estimateStatistics(snapshot, estStatsUsingFileSize, adjustmentFactor());
 
     } else {
       Snapshot snapshot = table().currentSnapshot();
