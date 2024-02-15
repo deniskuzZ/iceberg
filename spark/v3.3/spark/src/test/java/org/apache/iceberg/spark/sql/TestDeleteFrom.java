@@ -46,7 +46,9 @@ public class TestDeleteFrom extends SparkCatalogTestBase {
 
   @Test
   public void testDeleteFromUnpartitionedTable() throws NoSuchTableException {
-    sql("CREATE TABLE %s (id bigint, data string) USING iceberg", tableName);
+    // CDPD only: upstream uses copy-on-write by default for v2 tables
+    String tableProperties = "TBLPROPERTIES ('write.delete.mode'='copy-on-write')";
+    sql("CREATE TABLE %s (id bigint, data string) USING iceberg %s", tableName, tableProperties);
 
     List<SimpleRecord> records =
         Lists.newArrayList(
@@ -95,10 +97,12 @@ public class TestDeleteFrom extends SparkCatalogTestBase {
 
   @Test
   public void testDeleteFromPartitionedTable() throws NoSuchTableException {
+    // CDPD only: upstream uses copy-on-write by default for v2 tables
     sql(
         "CREATE TABLE %s (id bigint, data string) "
             + "USING iceberg "
-            + "PARTITIONED BY (truncate(id, 2))",
+            + "PARTITIONED BY (truncate(id, 2)) "
+            + "TBLPROPERTIES ('write.delete.mode'='copy-on-write')",
         tableName);
 
     List<SimpleRecord> records =
