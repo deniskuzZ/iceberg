@@ -49,6 +49,7 @@ import org.apache.iceberg.util.StructLikeSet;
 import org.apache.iceberg.util.TableScanUtil;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.expressions.Transform;
+import org.apache.spark.sql.connector.expressions.filter.Predicate;
 import org.apache.spark.sql.connector.read.SupportsReportPartitioning;
 import org.apache.spark.sql.connector.read.partitioning.KeyGroupedPartitioning;
 import org.apache.spark.sql.connector.read.partitioning.Partitioning;
@@ -77,8 +78,9 @@ abstract class SparkPartitioningAwareScan<T extends PartitionScanTask> extends S
       SparkReadConf readConf,
       Schema expectedSchema,
       List<Expression> filters,
+      Predicate[] pushedPredicates,
       Supplier<ScanReport> scanReportSupplier) {
-    super(spark, table, readConf, expectedSchema, filters, scanReportSupplier);
+    super(spark, table, readConf, expectedSchema, filters, pushedPredicates, scanReportSupplier);
 
     this.scan = scan;
     this.preserveDataGrouping = readConf.preserveDataGrouping();

@@ -53,6 +53,7 @@ import org.apache.spark.sql.connector.read.SupportsReportPartitioning;
 import org.apache.spark.sql.connector.read.partitioning.KeyGroupedPartitioning;
 import org.apache.spark.sql.connector.read.partitioning.Partitioning;
 import org.apache.spark.sql.connector.read.partitioning.UnknownPartitioning;
+import org.apache.spark.sql.sources.Filter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,9 +78,10 @@ abstract class SparkPartitioningAwareScan<T extends PartitionScanTask> extends S
       Scan<?, ? extends ScanTask, ? extends ScanTaskGroup<?>> scan,
       SparkReadConf readConf,
       Schema expectedSchema,
-      List<Expression> filters) {
+      List<Expression> filters,
+      Filter[] pushedFilters) {
 
-    super(spark, table, readConf, expectedSchema, filters);
+    super(spark, table, readConf, expectedSchema, filters, pushedFilters);
 
     this.scan = scan;
     this.preserveDataGrouping = readConf.preserveDataGrouping();

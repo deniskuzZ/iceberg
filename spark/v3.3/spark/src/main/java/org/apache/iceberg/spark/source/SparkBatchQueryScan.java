@@ -79,9 +79,10 @@ class SparkBatchQueryScan extends SparkPartitioningAwareScan<PartitionScanTask>
       boolean estStatsUsingFileSize,
       SparkReadConf readConf,
       Schema expectedSchema,
-      List<Expression> filters) {
+      List<Expression> filters,
+      Filter[] pushedFilters) {
 
-    super(spark, table, scan, readConf, expectedSchema, filters);
+    super(spark, table, scan, readConf, expectedSchema, filters, pushedFilters);
 
     this.estStatsUsingFileSize = estStatsUsingFileSize;
     this.snapshotId = readConf.snapshotId();

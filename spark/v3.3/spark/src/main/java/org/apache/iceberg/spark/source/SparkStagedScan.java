@@ -29,6 +29,7 @@ import org.apache.iceberg.spark.ScanTaskSetManager;
 import org.apache.iceberg.spark.SparkReadConf;
 import org.apache.iceberg.util.TableScanUtil;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.sources.Filter;
 
 class SparkStagedScan extends SparkScan {
 
@@ -40,7 +41,7 @@ class SparkStagedScan extends SparkScan {
   private List<ScanTaskGroup<ScanTask>> taskGroups = null; // lazy cache of tasks
 
   SparkStagedScan(SparkSession spark, Table table, SparkReadConf readConf) {
-    super(spark, table, readConf, table.schema(), ImmutableList.of());
+    super(spark, table, readConf, table.schema(), ImmutableList.of(), new Filter[0]);
 
     this.taskSetId = readConf.scanTaskSetId();
     this.splitSize = readConf.splitSize();

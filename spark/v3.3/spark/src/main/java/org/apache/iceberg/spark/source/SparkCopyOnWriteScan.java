@@ -57,8 +57,9 @@ class SparkCopyOnWriteScan extends SparkPartitioningAwareScan<FileScanTask>
       Table table,
       SparkReadConf readConf,
       Schema expectedSchema,
-      List<Expression> filters) {
-    this(spark, table, null, null, readConf, expectedSchema, filters);
+      List<Expression> filters,
+      Filter[] pushedFilters) {
+    this(spark, table, null, null, readConf, expectedSchema, filters, pushedFilters);
   }
 
   SparkCopyOnWriteScan(
@@ -68,9 +69,10 @@ class SparkCopyOnWriteScan extends SparkPartitioningAwareScan<FileScanTask>
       Snapshot snapshot,
       SparkReadConf readConf,
       Schema expectedSchema,
-      List<Expression> filters) {
+      List<Expression> filters,
+      Filter[] pushedFilters) {
 
-    super(spark, table, scan, readConf, expectedSchema, filters);
+    super(spark, table, scan, readConf, expectedSchema, filters, pushedFilters);
 
     this.snapshot = snapshot;
 

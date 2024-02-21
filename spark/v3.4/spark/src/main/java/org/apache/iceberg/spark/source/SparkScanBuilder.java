@@ -477,6 +477,7 @@ public class SparkScanBuilder
         readConf,
         expectedSchema,
         filterExpressions,
+        pushedPredicates,
         metricsReporter::scanReport);
   }
 
@@ -506,6 +507,7 @@ public class SparkScanBuilder
         readConf,
         expectedSchema,
         filterExpressions,
+        pushedPredicates,
         metricsReporter::scanReport);
   }
 
@@ -624,6 +626,7 @@ public class SparkScanBuilder
           readConf,
           schemaWithMetadataColumns(),
           filterExpressions,
+          pushedPredicates,
           metricsReporter::scanReport);
     }
 
@@ -655,6 +658,7 @@ public class SparkScanBuilder
         adjustedReadConf,
         expectedSchema,
         filterExpressions,
+        pushedPredicates,
         metricsReporter::scanReport);
   }
 
@@ -668,6 +672,7 @@ public class SparkScanBuilder
           readConf,
           schemaWithMetadataColumns(),
           filterExpressions,
+          pushedPredicates,
           metricsReporter::scanReport);
     }
 
@@ -693,6 +698,7 @@ public class SparkScanBuilder
         readConf,
         expectedSchema,
         filterExpressions,
+        pushedPredicates,
         metricsReporter::scanReport);
   }
 

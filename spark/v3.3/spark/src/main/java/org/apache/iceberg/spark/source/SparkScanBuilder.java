@@ -466,7 +466,14 @@ public class SparkScanBuilder
     scan = configureSplitPlanning(scan);
 
     return new SparkBatchQueryScan(
-        spark, table, scan, estStatsUsingFileSize, readConf, expectedSchema, filterExpressions);
+        spark,
+        table,
+        scan,
+        estStatsUsingFileSize,
+        readConf,
+        expectedSchema,
+        filterExpressions,
+        pushedFilters);
   }
 
   private Scan buildIncrementalAppendScan(long startSnapshotId, Long endSnapshotId) {
@@ -487,7 +494,14 @@ public class SparkScanBuilder
     scan = configureSplitPlanning(scan);
 
     return new SparkBatchQueryScan(
-        spark, table, scan, estStatsUsingFileSize, readConf, expectedSchema, filterExpressions);
+        spark,
+        table,
+        scan,
+        estStatsUsingFileSize,
+        readConf,
+        expectedSchema,
+        filterExpressions,
+        pushedFilters);
   }
 
   @SuppressWarnings("CyclomaticComplexity")
@@ -603,7 +617,8 @@ public class SparkScanBuilder
           estStatsUsingFileSize,
           readConf,
           schemaWithMetadataColumns(),
-          filterExpressions);
+          filterExpressions,
+          pushedFilters);
     }
 
     // remember the current snapshot ID for commit validation
@@ -633,7 +648,8 @@ public class SparkScanBuilder
         estStatsUsingFileSize,
         adjustedReadConf,
         expectedSchema,
-        filterExpressions);
+        filterExpressions,
+        pushedFilters);
   }
 
   public Scan buildCopyOnWriteScan() {
@@ -641,7 +657,7 @@ public class SparkScanBuilder
 
     if (snapshot == null) {
       return new SparkCopyOnWriteScan(
-          spark, table, readConf, schemaWithMetadataColumns(), filterExpressions);
+          spark, table, readConf, schemaWithMetadataColumns(), filterExpressions, pushedFilters);
     }
 
     Schema expectedSchema = schemaWithMetadataColumns();
@@ -658,7 +674,7 @@ public class SparkScanBuilder
     scan = configureSplitPlanning(scan);
 
     return new SparkCopyOnWriteScan(
-        spark, table, scan, snapshot, readConf, expectedSchema, filterExpressions);
+        spark, table, scan, snapshot, readConf, expectedSchema, filterExpressions, pushedFilters);
   }
 
   private <T extends org.apache.iceberg.Scan<T, ?, ?>> T configureSplitPlanning(T scan) {

@@ -18,9 +18,11 @@
  */
 package org.apache.iceberg.spark.source;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.iceberg.ScanTask;
 import org.apache.iceberg.ScanTaskGroup;
@@ -41,17 +43,21 @@ import org.apache.iceberg.util.PropertyUtil;
 import org.apache.iceberg.util.SnapshotUtil;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.connector.catalog.SupportsRead;
 import org.apache.spark.sql.connector.metric.CustomMetric;
 import org.apache.spark.sql.connector.read.Batch;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.Statistics;
+import org.apache.spark.sql.connector.read.SupportsMerge;
 import org.apache.spark.sql.connector.read.SupportsReportStatistics;
 import org.apache.spark.sql.connector.read.streaming.MicroBatchStream;
+import org.apache.spark.sql.sources.Filter;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class SparkScan implements Scan, SupportsReportStatistics {
+abstract class SparkScan implements Scan, SupportsReportStatistics, SupportsMerge {
   private static final Logger LOG = LoggerFactory.getLogger(SparkScan.class);
 
   private final JavaSparkContext sparkContext;
@@ -60,6 +66,7 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
   private final boolean caseSensitive;
   private final Schema expectedSchema;
   private final List<Expression> filterExpressions;
+  private final Filter[] pushedFilters;
   private final boolean readTimestampWithoutZone;
   private final String branch;
 
@@ -71,7 +78,8 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
       Table table,
       SparkReadConf readConf,
       Schema expectedSchema,
-      List<Expression> filters) {
+      List<Expression> filters,
+      Filter[] pushedFilters) {
     Schema snapshotSchema = SnapshotUtil.schemaFor(table, readConf.branch());
     SparkSchemaUtil.validateMetadataColumnReferences(snapshotSchema, expectedSchema);
 
@@ -81,8 +89,36 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
     this.caseSensitive = readConf.caseSensitive();
     this.expectedSchema = expectedSchema;
     this.filterExpressions = filters != null ? filters : Collections.emptyList();
+    this.pushedFilters = pushedFilters != null ? pushedFilters : new Filter[0];
     this.readTimestampWithoutZone = readConf.handleTimestampWithoutZone();
     this.branch = readConf.branch();
+  }
+
+  private static boolean equivalentFilters(Filter[] filters1, Filter[] filters2) {
+    Arrays.sort(filters1, (a, b) -> a.hashCode() - b.hashCode());
+    Arrays.sort(filters2, (a, b) -> a.hashCode() - b.hashCode());
+
+    return Arrays.equals(filters1, filters2);
+  }
+
+  @Override
+  public Optional<SupportsMerge> mergeWith(SupportsMerge other, SupportsRead sparkTable) {
+    if (other instanceof SparkScan) {
+      Filter[] otherFilters = ((SparkScan) other).pushedFilters();
+
+      if (equivalentFilters(pushedFilters(), otherFilters)) {
+        SparkScanBuilder scanBuilder =
+            (SparkScanBuilder) sparkTable.newScanBuilder(CaseInsensitiveStringMap.empty());
+        scanBuilder.pruneColumns(readSchema().merge(other.readSchema()));
+        scanBuilder.pushFilters(pushedFilters());
+
+        return Optional.of((SparkScan) scanBuilder.build());
+      } else {
+        return Optional.empty();
+      }
+    } else {
+      return Optional.empty();
+    }
   }
 
   protected Table table() {
@@ -110,6 +146,10 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
   }
 
   protected abstract List<? extends ScanTaskGroup<?>> taskGroups();
+
+  protected Filter[] pushedFilters() {
+    return pushedFilters;
+  }
 
   @Override
   public Batch toBatch() {

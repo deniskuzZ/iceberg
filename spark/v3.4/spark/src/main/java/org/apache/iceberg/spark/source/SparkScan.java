@@ -18,9 +18,11 @@
  */
 package org.apache.iceberg.spark.source;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.iceberg.ScanTask;
@@ -56,18 +58,22 @@ import org.apache.iceberg.util.SnapshotUtil;
 import org.apache.iceberg.util.TableScanUtil;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.connector.catalog.SupportsRead;
+import org.apache.spark.sql.connector.expressions.filter.Predicate;
 import org.apache.spark.sql.connector.metric.CustomMetric;
 import org.apache.spark.sql.connector.metric.CustomTaskMetric;
 import org.apache.spark.sql.connector.read.Batch;
 import org.apache.spark.sql.connector.read.Scan;
 import org.apache.spark.sql.connector.read.Statistics;
+import org.apache.spark.sql.connector.read.SupportsMerge;
 import org.apache.spark.sql.connector.read.SupportsReportStatistics;
 import org.apache.spark.sql.connector.read.streaming.MicroBatchStream;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class SparkScan implements Scan, SupportsReportStatistics {
+abstract class SparkScan implements Scan, SupportsReportStatistics, SupportsMerge {
   private static final Logger LOG = LoggerFactory.getLogger(SparkScan.class);
 
   private final JavaSparkContext sparkContext;
@@ -76,6 +82,7 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
   private final boolean caseSensitive;
   private final Schema expectedSchema;
   private final List<Expression> filterExpressions;
+  private final Predicate[] pushedPredicates;
   private final String branch;
   private final Supplier<ScanReport> scanReportSupplier;
 
@@ -88,6 +95,7 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
       SparkReadConf readConf,
       Schema expectedSchema,
       List<Expression> filters,
+      Predicate[] pushedPredicates,
       Supplier<ScanReport> scanReportSupplier) {
     Schema snapshotSchema = SnapshotUtil.schemaFor(table, readConf.branch());
     SparkSchemaUtil.validateMetadataColumnReferences(snapshotSchema, expectedSchema);
@@ -98,8 +106,36 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
     this.caseSensitive = readConf.caseSensitive();
     this.expectedSchema = expectedSchema;
     this.filterExpressions = filters != null ? filters : Collections.emptyList();
+    this.pushedPredicates = pushedPredicates != null ? pushedPredicates : new Predicate[0];
     this.branch = readConf.branch();
     this.scanReportSupplier = scanReportSupplier;
+  }
+
+  private static boolean equivalentPredicates(Predicate[] predicates1, Predicate[] predicates2) {
+    Arrays.sort(predicates1, (a, b) -> a.hashCode() - b.hashCode());
+    Arrays.sort(predicates2, (a, b) -> a.hashCode() - b.hashCode());
+
+    return Arrays.equals(predicates1, predicates2);
+  }
+
+  @Override
+  public Optional<SupportsMerge> mergeWith(SupportsMerge other, SupportsRead sparkTable) {
+    if (other instanceof SparkScan) {
+      Predicate[] otherPredicates = ((SparkScan) other).pushedPredicates();
+
+      if (equivalentPredicates(pushedPredicates(), otherPredicates)) {
+        SparkScanBuilder scanBuilder =
+            (SparkScanBuilder) sparkTable.newScanBuilder(CaseInsensitiveStringMap.empty());
+        scanBuilder.pruneColumns(readSchema().merge(other.readSchema()));
+        scanBuilder.pushPredicates(pushedPredicates());
+
+        return Optional.of((SparkScan) scanBuilder.build());
+      } else {
+        return Optional.empty();
+      }
+    } else {
+      return Optional.empty();
+    }
   }
 
   protected Table table() {
@@ -127,6 +163,10 @@ abstract class SparkScan implements Scan, SupportsReportStatistics {
   }
 
   protected abstract List<? extends ScanTaskGroup<?>> taskGroups();
+
+  protected Predicate[] pushedPredicates() {
+    return pushedPredicates;
+  }
 
   @Override
   public Batch toBatch() {

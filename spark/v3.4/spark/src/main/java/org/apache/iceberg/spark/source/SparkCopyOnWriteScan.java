@@ -39,6 +39,7 @@ import org.apache.iceberg.util.SnapshotUtil;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.connector.expressions.Expressions;
 import org.apache.spark.sql.connector.expressions.NamedReference;
+import org.apache.spark.sql.connector.expressions.filter.Predicate;
 import org.apache.spark.sql.connector.read.Statistics;
 import org.apache.spark.sql.connector.read.SupportsRuntimeFiltering;
 import org.apache.spark.sql.sources.Filter;
@@ -60,8 +61,18 @@ class SparkCopyOnWriteScan extends SparkPartitioningAwareScan<FileScanTask>
       SparkReadConf readConf,
       Schema expectedSchema,
       List<Expression> filters,
+      Predicate[] pushedPredicates,
       Supplier<ScanReport> scanReportSupplier) {
-    this(spark, table, null, null, readConf, expectedSchema, filters, scanReportSupplier);
+    this(
+        spark,
+        table,
+        null,
+        null,
+        readConf,
+        expectedSchema,
+        filters,
+        pushedPredicates,
+        scanReportSupplier);
   }
 
   SparkCopyOnWriteScan(
@@ -72,8 +83,17 @@ class SparkCopyOnWriteScan extends SparkPartitioningAwareScan<FileScanTask>
       SparkReadConf readConf,
       Schema expectedSchema,
       List<Expression> filters,
+      Predicate[] pushedPredicates,
       Supplier<ScanReport> scanReportSupplier) {
-    super(spark, table, scan, readConf, expectedSchema, filters, scanReportSupplier);
+    super(
+        spark,
+        table,
+        scan,
+        readConf,
+        expectedSchema,
+        filters,
+        pushedPredicates,
+        scanReportSupplier);
 
     this.snapshot = snapshot;
 
