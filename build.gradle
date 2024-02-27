@@ -146,6 +146,7 @@ allprojects {
       // This is for a standalone build, where all internal dependencies are retrieved
       // from Nexus-internal
       maven { url nexusUrl }
+      maven { url sparkGbnUrl }
     }
     mavenCentral()
     mavenLocal()

@@ -13,7 +13,7 @@ awaitility = "4.2.0"
 awssdk-bom = "2.20.131"
 azuresdk-bom = "1.2.16"
 caffeine = "2.9.3"
-calcite = "1.25.0.7.3.0.0-SNAPSHOT"
+calcite = "1.25.0.7.2.18.0-626"
 datasketches-hive = "1.1.0-incubating"
 delta-standalone = "0.6.0"
 delta-core = "2.2.0"
@@ -28,11 +28,11 @@ flink116 = "1.16.1-csadh1.10.0.0-SNAPSHOT"
 flink117 = { strictly = "[1.17, 1.18[", prefer = "1.17.1"}
 google-libraries-bom = "26.18.0"
 guava = "32.1.1-jre"
-hadoop2 = "3.1.1.7.3.0.0-SNAPSHOT"
-hadoop3-client = "3.1.1.7.3.0.0-SNAPSHOT"
+hadoop2 = "3.1.1.7.2.18.0-626"
+hadoop3-client = "3.1.1.7.2.18.0-626"
 httpcomponents-httpclient5 = "5.2.1"
-hive2 = "3.1.3000.7.3.0.0-SNAPSHOT"
-hive3 = "3.1.3000.7.3.0.0-SNAPSHOT"
+hive2 = "3.1.3000.7.2.18.0-626"
+hive3 = "3.1.3000.7.2.18.0-626"
 immutables-value = "2.9.2"
 jackson-annotations = "2.15.2"
 jackson-bom = "2.14.2"
@@ -41,7 +41,7 @@ jackson211 = { strictly = "[2.11, 2.12[", prefer = "2.11.4"} # see rich version 
 jackson212 = { strictly = "[2.12, 2.13[", prefer = "2.12.3"}
 jackson213 = { strictly = "[2.13, 2.14[", prefer = "2.13.4"}
 jackson214 = { strictly = "[2.14, 2.15[", prefer = "2.14.2"}
-jackson215 = { strictly = "[2.15, 2.16[", prefer = "2.15.2"}
+jackson215 = "2.15.2" # { strictly = "[2.15, 2.16[", prefer = "2.15.2"}
 jakarta-el-api = "3.0.3"
 jaxb-api = "2.3.1"
 jaxb-runtime = "2.3.3"
@@ -65,13 +65,13 @@ slf4j = "1.7.36"
 snowflake-jdbc = "3.13.30"
 spark-hive32 = "3.2.1.7.2.15.0-147"
 spark-hive33 = "3.3.2.7.2.17.300-111"
-spark-hive34 = "3.4.1.7.3.0.0-SNAPSHOT"
-spark-hive35 = "3.5.0"
+spark-hive34 = "3.4.1.7.2.18.0-626"
+spark-hive35 = "3.5.1.7.2.18.0-626"
 spring-boot = "2.5.4"
 spring-web = "5.3.9"
 sqlite-jdbc = "3.42.0.0"
 testcontainers = "1.17.6"
-tez010 = "0.9.1.7.3.0.0-SNAPSHOT"
+tez010 = "0.9.1.7.2.18.0-626"
 tez08 = { strictly = "[0.8, 0.9[", prefer = "0.8.4"}  # see rich version usage explanation above
 
 [libraries]
