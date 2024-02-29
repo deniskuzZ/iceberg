@@ -89,12 +89,17 @@ public class SparkScanBuilder
   private StructType pushedAggregateSchema;
   private Scan localScan;
 
+  public static final String EST_STATS_USING_FILE_SIZE =
+      "spark.cloudera.iceberg.estStatsUsingFileSize";
+  public static final String EST_STATS_USING_FILE_SIZE_DEFAULT = "false";
+
   private final SparkSession spark;
   private final Table table;
   private final CaseInsensitiveStringMap options;
   private final SparkReadConf readConf;
   private final List<String> metaColumns = Lists.newArrayList();
   private final InMemoryMetricsReporter metricsReporter;
+  private final boolean estStatsUsingFileSize;
 
   private Schema schema = null;
   private boolean caseSensitive;
@@ -114,6 +119,9 @@ public class SparkScanBuilder
     this.readConf = new SparkReadConf(spark, table, branch, options);
     this.caseSensitive = readConf.caseSensitive();
     this.metricsReporter = new InMemoryMetricsReporter();
+    this.estStatsUsingFileSize =
+        Boolean.parseBoolean(
+            spark.conf().get(EST_STATS_USING_FILE_SIZE, EST_STATS_USING_FILE_SIZE_DEFAULT));
   }
 
   SparkScanBuilder(SparkSession spark, Table table, CaseInsensitiveStringMap options) {
@@ -465,6 +473,7 @@ public class SparkScanBuilder
         spark,
         table,
         scan,
+        estStatsUsingFileSize,
         readConf,
         expectedSchema,
         filterExpressions,
@@ -493,6 +502,7 @@ public class SparkScanBuilder
         spark,
         table,
         scan,
+        estStatsUsingFileSize,
         readConf,
         expectedSchema,
         filterExpressions,
@@ -610,6 +620,7 @@ public class SparkScanBuilder
           spark,
           table,
           null,
+          estStatsUsingFileSize,
           readConf,
           schemaWithMetadataColumns(),
           filterExpressions,
@@ -640,6 +651,7 @@ public class SparkScanBuilder
         spark,
         table,
         scan,
+        estStatsUsingFileSize,
         adjustedReadConf,
         expectedSchema,
         filterExpressions,
