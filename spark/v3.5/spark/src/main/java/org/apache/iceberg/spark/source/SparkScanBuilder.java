@@ -91,7 +91,7 @@ public class SparkScanBuilder
 
   public static final String EST_STATS_USING_FILE_SIZE =
       "spark.cloudera.iceberg.estStatsUsingFileSize";
-  public static final String EST_STATS_USING_FILE_SIZE_DEFAULT = "false";
+  public static final String EST_STATS_USING_FILE_SIZE_DEFAULT = "true";
 
   private final SparkSession spark;
   private final Table table;
