@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.apache.iceberg.CatalogUtil;
+import org.apache.iceberg.RowLevelOperationMode;
 import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.exceptions.AlreadyExistsException;
@@ -472,7 +473,9 @@ public class TestAggregatePushDown extends SparkCatalogTestBase {
 
   @Test
   public void testAggregatePushDownInDeleteCopyOnWrite() {
-    sql("CREATE TABLE %s (id LONG, data INT) USING iceberg", tableName);
+    sql(
+        "CREATE TABLE %s (id LONG, data INT) USING iceberg TBLPROPERTIES ('%s'='%s')",
+        tableName, TableProperties.DELETE_MODE, RowLevelOperationMode.COPY_ON_WRITE.modeName());
     sql(
         "INSERT INTO TABLE %s VALUES (1, 1111), (1, 2222), (2, 3333), (2, 4444), (3, 5555), (3, 6666) ",
         tableName);
