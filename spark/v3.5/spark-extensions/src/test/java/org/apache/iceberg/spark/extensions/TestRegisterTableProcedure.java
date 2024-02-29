@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.iceberg.HasTableOperations;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.spark.Spark3Util;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.catalyst.parser.ParseException;
@@ -47,8 +48,12 @@ public class TestRegisterTableProcedure extends SparkExtensionsTestBase {
 
   @After
   public void dropTables() {
-    sql("DROP TABLE IF EXISTS %s", tableName);
-    sql("DROP TABLE IF EXISTS %s", targetName);
+    withSQLConf(
+        ImmutableMap.of("spark.cloudera.iceberg.purgeOnDropTable", "false"),
+        () -> {
+          sql("DROP TABLE IF EXISTS %s", tableName);
+          sql("DROP TABLE IF EXISTS %s", targetName);
+        });
   }
 
   @Test

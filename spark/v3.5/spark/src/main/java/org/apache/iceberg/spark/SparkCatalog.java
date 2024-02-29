@@ -119,6 +119,8 @@ public class SparkCatalog extends BaseCatalog {
   private static final Pattern SNAPSHOT_ID = Pattern.compile("snapshot_id_(\\d+)");
   private static final Pattern BRANCH = Pattern.compile("branch_(.*)");
   private static final Pattern TAG = Pattern.compile("tag_(.*)");
+  public static final String PURGE_ON_DROP_TABLE = "spark.cloudera.iceberg.purgeOnDropTable";
+  public static final String PURGE_ON_DROP_TABLE_DEFAULT = "true";
 
   private String catalogName = null;
   private Catalog icebergCatalog = null;
@@ -341,13 +343,28 @@ public class SparkCatalog extends BaseCatalog {
 
   @Override
   public boolean dropTable(Identifier ident) {
-    return dropTableWithoutPurging(ident);
+    boolean purge =
+        Boolean.parseBoolean(
+            SparkSession.active().conf().get(PURGE_ON_DROP_TABLE, PURGE_ON_DROP_TABLE_DEFAULT));
+    Table table = null;
+    try {
+      table = load(ident);
+    } catch (org.apache.iceberg.exceptions.NoSuchTableException e) {
+      return false;
+    }
+    boolean gcEnabled =
+        PropertyUtil.propertyAsBoolean(table.properties(), GC_ENABLED, GC_ENABLED_DEFAULT);
+    if (purge && gcEnabled) {
+      return purgeTable(ident);
+    } else {
+      return dropTableWithoutPurging(ident);
+    }
   }
 
   @Override
   public boolean purgeTable(Identifier ident) {
     try {
-      org.apache.iceberg.Table table = icebergCatalog.loadTable(buildIdentifier(ident));
+      org.apache.iceberg.Table table = ((SparkTable) load(ident)).table();
       ValidationException.check(
           PropertyUtil.propertyAsBoolean(table.properties(), GC_ENABLED, GC_ENABLED_DEFAULT),
           "Cannot purge table: GC is disabled (deleting files may corrupt other tables)");
