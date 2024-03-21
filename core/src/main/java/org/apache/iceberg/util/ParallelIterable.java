@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.iceberg.exceptions.RuntimeIOException;
 import org.apache.iceberg.io.CloseableGroup;
 import org.apache.iceberg.io.CloseableIterable;
@@ -76,7 +77,11 @@ public class ParallelIterable<T> extends CloseableGroup implements CloseableIter
               .iterator();
       this.workerPool = workerPool;
       // submit 2 tasks per worker at a time
-      this.taskFutures = new Future[2 * ThreadPools.WORKER_THREAD_POOL_SIZE];
+      int corePoolSize = ThreadPools.WORKER_THREAD_POOL_SIZE;
+      if (workerPool instanceof ThreadPoolExecutor) {
+        corePoolSize = ((ThreadPoolExecutor) workerPool).getCorePoolSize();
+      }
+      this.taskFutures = new Future[2 * corePoolSize];
     }
 
     @Override

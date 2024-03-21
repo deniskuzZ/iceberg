@@ -21,6 +21,10 @@ package org.apache.iceberg.deletes;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -35,10 +39,15 @@ import org.apache.iceberg.io.FilterIterator;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableList;
 import org.apache.iceberg.relocated.com.google.common.collect.Iterables;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
+import org.apache.iceberg.relocated.com.google.common.collect.Maps;
+import org.apache.iceberg.types.Comparators;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.util.CharSequenceSet;
 import org.apache.iceberg.util.Filter;
 import org.apache.iceberg.util.SortedMerge;
 import org.apache.iceberg.util.StructLikeSet;
+import org.apache.iceberg.util.Tasks;
+import org.apache.iceberg.util.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,20 +136,75 @@ public class Deletes {
 
   public static <T extends StructLike> PositionDeleteIndex toPositionIndex(
       CharSequence dataLocation, List<CloseableIterable<T>> deleteFiles) {
+    return toPositionIndex(dataLocation, deleteFiles, ThreadPools.getDeleteWorkerPool());
+  }
+
+  public static <T extends StructLike> PositionDeleteIndex toPositionIndex(
+      CharSequence dataLocation,
+      List<CloseableIterable<T>> deleteFiles,
+      ExecutorService deletePosThreadPool) {
     DataFileFilter<T> locationFilter = new DataFileFilter<>(dataLocation);
-    List<CloseableIterable<Long>> positions =
-        Lists.transform(
-            deleteFiles,
-            deletes ->
-                CloseableIterable.transform(
-                    locationFilter.filter(deletes), row -> (Long) POSITION_ACCESSOR.get(row)));
-    return toPositionIndex(CloseableIterable.concat(positions));
+    Queue<PositionDeleteIndex> posIndex = new ConcurrentLinkedQueue<>();
+
+    Tasks.Task<CloseableIterable<T>, RuntimeException> task =
+        deletes -> {
+          CloseableIterable<Long> posDeletes =
+              CloseableIterable.transform(
+                  locationFilter.filter(deletes), row -> (Long) POSITION_ACCESSOR.get(row));
+          posIndex.add(toPositionIndex(posDeletes));
+        };
+    Tasks.foreach(deleteFiles)
+        .stopOnFailure()
+        .throwFailureWhenFinished()
+        .executeWith(deletePosThreadPool)
+        .run(task);
+    return posIndex.stream().reduce(new BitmapPositionDeleteIndex(), PositionDeleteIndex::or);
   }
 
   public static PositionDeleteIndex toPositionIndex(CloseableIterable<Long> posDeletes) {
     try (CloseableIterable<Long> deletes = posDeletes) {
       PositionDeleteIndex positionDeleteIndex = new BitmapPositionDeleteIndex();
       deletes.forEach(positionDeleteIndex::delete);
+      return positionDeleteIndex;
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to close position delete source", e);
+    }
+  }
+
+  public static <T extends StructLike> Map<String, PositionDeleteIndex> toPositionIndexMap(
+      CharSequenceSet dataLocations, List<CloseableIterable<T>> deleteFiles) {
+    return toPositionIndexMap(dataLocations, deleteFiles, ThreadPools.getDeleteWorkerPool());
+  }
+
+  public static <T extends StructLike> Map<String, PositionDeleteIndex> toPositionIndexMap(
+      CharSequenceSet dataLocations,
+      List<CloseableIterable<T>> deleteFiles,
+      ExecutorService deletePosThreadPool) {
+    DataFileFilter<T> locationFilter = new DataFileFilter<>(dataLocations);
+    Map<String, PositionDeleteIndex> posIndexMap = Maps.newConcurrentMap();
+
+    Tasks.Task<CloseableIterable<T>, RuntimeException> task =
+        deletes ->
+            toPositionIndexMap(locationFilter.filter(deletes))
+                .forEach((key, value) -> posIndexMap.merge(key, value, PositionDeleteIndex::or));
+    Tasks.foreach(deleteFiles)
+        .stopOnFailure()
+        .throwFailureWhenFinished()
+        .executeWith(deletePosThreadPool)
+        .run(task);
+    return posIndexMap;
+  }
+
+  public static <T extends StructLike> Map<String, PositionDeleteIndex> toPositionIndexMap(
+      CloseableIterable<T> posDeletes) {
+    try (CloseableIterable<T> deletes = posDeletes) {
+      Map<String, PositionDeleteIndex> positionDeleteIndex = Maps.newHashMap();
+      deletes.forEach(
+          row ->
+              positionDeleteIndex
+                  .computeIfAbsent(
+                      (String) FILENAME_ACCESSOR.get(row), k -> new BitmapPositionDeleteIndex())
+                  .delete((Long) POSITION_ACCESSOR.get(row)));
       return positionDeleteIndex;
     } catch (IOException e) {
       throw new UncheckedIOException("Failed to close position delete source", e);
@@ -345,42 +409,22 @@ public class Deletes {
     }
   }
 
-  private static class DataFileFilter<T extends StructLike> extends Filter<T> {
-    private final CharSequence dataLocation;
+  private static final class DataFileFilter<T extends StructLike> extends Filter<T> {
+    private final CharSequenceSet dataLocations;
+
+    DataFileFilter(CharSequenceSet dataLocation) {
+      this.dataLocations = dataLocation;
+    }
 
     DataFileFilter(CharSequence dataLocation) {
-      this.dataLocation = dataLocation;
+      this.dataLocations =
+          CharSequenceSet.of(ImmutableList.of(dataLocation), Comparators.filePath());
     }
 
+    @SuppressWarnings("CollectionUndefinedEquality")
     @Override
     protected boolean shouldKeep(T posDelete) {
-      return charSeqEquals(dataLocation, (CharSequence) FILENAME_ACCESSOR.get(posDelete));
-    }
-
-    private boolean charSeqEquals(CharSequence s1, CharSequence s2) {
-      if (s1 == s2) {
-        return true;
-      }
-
-      int count = s1.length();
-      if (count != s2.length()) {
-        return false;
-      }
-
-      if (s1 instanceof String && s2 instanceof String && s1.hashCode() != s2.hashCode()) {
-        return false;
-      }
-
-      // File paths inside a delete file normally have more identical chars at the beginning. For
-      // example, a typical
-      // path is like "s3:/bucket/db/table/data/partition/00000-0-[uuid]-00001.parquet".
-      // The uuid is where the difference starts. So it's faster to find the first diff backward.
-      for (int i = count - 1; i >= 0; i--) {
-        if (s1.charAt(i) != s2.charAt(i)) {
-          return false;
-        }
-      }
-      return true;
+      return dataLocations.contains(FILENAME_ACCESSOR.get(posDelete));
     }
   }
 }

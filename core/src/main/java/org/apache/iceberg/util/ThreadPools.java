@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.iceberg.SystemConfigs;
+import org.apache.iceberg.SystemProperties;
 import org.apache.iceberg.relocated.com.google.common.util.concurrent.MoreExecutors;
 import org.apache.iceberg.relocated.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -44,6 +45,12 @@ public class ThreadPools {
 
   private static final ExecutorService WORKER_POOL = newWorkerPool("iceberg-worker-pool");
 
+  public static final int DELETE_WORKER_THREAD_POOL_SIZE =
+      getPoolSize(SystemProperties.DELETE_POS_FILES_THREAD_POOL_SIZE, 2);
+
+  private static final ExecutorService DELETE_WORKER_POOL =
+      newWorkerPool("iceberg-delete-worker-pool", DELETE_WORKER_THREAD_POOL_SIZE);
+
   /**
    * Return an {@link ExecutorService} that uses the "worker" thread-pool.
    *
@@ -57,6 +64,18 @@ public class ThreadPools {
    */
   public static ExecutorService getWorkerPool() {
     return WORKER_POOL;
+  }
+
+  /**
+   * Return an {@link ExecutorService} that uses "delete worker" thread-pool.
+   *
+   * <p>The size of this thread-pool is controlled by the Java system property {@code
+   * iceberg.worker.delete-num-threads}.
+   *
+   * @return an {@link ExecutorService} that uses delete worker pool
+   */
+  public static ExecutorService getDeleteWorkerPool() {
+    return DELETE_WORKER_POOL;
   }
 
   public static ExecutorService newWorkerPool(String namePrefix) {
@@ -84,5 +103,17 @@ public class ThreadPools {
 
   private static ThreadFactory newDaemonThreadFactory(String namePrefix) {
     return new ThreadFactoryBuilder().setDaemon(true).setNameFormat(namePrefix + "-%d").build();
+  }
+
+  private static int getPoolSize(String systemProperty, int defaultSize) {
+    String value = System.getProperty(systemProperty);
+    if (value != null) {
+      try {
+        return Integer.parseUnsignedInt(value);
+      } catch (NumberFormatException e) {
+        // will return the default
+      }
+    }
+    return defaultSize;
   }
 }
