@@ -371,7 +371,7 @@ public class TestPartitionStatsUtil {
             snapshot2.snapshotId()));
   }
 
-  @org.junit.Test
+  @Test
   @SuppressWarnings("MethodLength")
   public void testPartitionStatsWithSchemaEvolution2() throws Exception {
     PartitionSpec specBefore =
@@ -379,8 +379,8 @@ public class TestPartitionStatsUtil {
 
     Table testTable =
         TestTables.create(
-            tempDir("partition_stats_schema_evolve"),
-            "partition_stats_schema_evolve",
+            tempDir("partition_stats_schema_evolve2"),
+            "partition_stats_schema_evolve2",
             SCHEMA,
             specBefore,
             SortOrder.unsorted(),
