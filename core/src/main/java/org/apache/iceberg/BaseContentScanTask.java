@@ -18,6 +18,8 @@
  */
 package org.apache.iceberg;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.expressions.ResidualEvaluator;
 import org.apache.iceberg.relocated.com.google.common.base.MoreObjects;
@@ -123,6 +125,19 @@ abstract class BaseContentScanTask<ThisT extends ContentScanTask<F>, F extends C
         .add("partition_data", file().partition())
         .add("residual", residual())
         .toString();
+  }
+
+  /**
+   * Writes the residual of this task's file instead of the residual evaluator: the evaluator holds
+   * the partition spec and its schema as objects, which the task already carries as JSON.
+   */
+  private void writeObject(ObjectOutputStream out) throws IOException {
+    ObjectOutputStream.PutField fields = out.putFields();
+    fields.put("file", file);
+    fields.put("schemaString", schemaString);
+    fields.put("specString", specString);
+    fields.put("residuals", ResidualEvaluator.unpartitioned(residual()));
+    out.writeFields();
   }
 
   static long estimateRowsCount(long length, ContentFile<?> file) {
