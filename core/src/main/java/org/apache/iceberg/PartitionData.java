@@ -50,6 +50,7 @@ public class PartitionData
   private final Types.StructType partitionType;
   private final int size;
   private final Object[] data;
+  // null when the schema is derived from the partition type, which is serialized anyway
   private final String stringSchema;
   private transient Schema schema;
 
@@ -74,7 +75,7 @@ public class PartitionData
     this.size = partitionType.fields().size();
     this.data = new Object[size];
     this.schema = partitionDataSchema(partitionType);
-    this.stringSchema = schema.toString();
+    this.stringSchema = null;
   }
 
   /** Copy constructor */
@@ -102,7 +103,10 @@ public class PartitionData
   @Override
   public Schema getSchema() {
     if (schema == null) {
-      this.schema = new Schema.Parser().parse(stringSchema);
+      this.schema =
+          stringSchema != null
+              ? new Schema.Parser().parse(stringSchema)
+              : partitionDataSchema(partitionType);
     }
     return schema;
   }
